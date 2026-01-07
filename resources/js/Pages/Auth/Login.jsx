@@ -1,97 +1,78 @@
-import { useEffect } from 'react';
-import Checkbox from '@/Components/Checkbox';
-import GuestLayout from '@/Layouts/GuestLayout';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import { Head, Link, useForm } from '@inertiajs/react';
+import React from 'react';
+import { useForm, Head } from '@inertiajs/react';
+import Button from '@/Components/UI/Button';
+import Input from '@/Components/UI/Input';
 
-export default function Login({ status, canResetPassword }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        email: '',
+export default function Login() {
+    const { data, setData, post, processing, errors } = useForm({
+        username: '',
         password: '',
-        remember: false,
+        rememberMe: false,
     });
 
-    useEffect(() => {
-        return () => {
-            reset('password');
-        };
-    }, []);
-
-    const submit = (e) => {
+    const handleLogin = (e) => {
         e.preventDefault();
-
         post(route('login'));
     };
 
     return (
-        <GuestLayout>
-            <Head title="Log in" />
+        <div className="min-h-screen flex items-center justify-center bg-white p-4">
+            <Head title="Login CBT EXAM" />
+            <div className="w-full max-w-md text-center">
+                <img src="/images/logo-unila.png" alt="UNILA" className="mx-auto w-24 mb-4" />
+                <h1 className="text-2xl font-bold text-gray-800">CBT EXAM</h1>
+                <p className="text-gray-500 text-sm mb-8">Fakultas Kedokteran Universitas Lampung</p>
 
-            {status && <div className="mb-4 font-medium text-sm text-green-600">{status}</div>}
-
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
+                <form onSubmit={handleLogin} className="space-y-4 text-left">
+                    <Input 
+                        label="User"
+                        value={data.username}
+                        onChange={e => setData('username', e.target.value)}
+                        error={errors.username}
+                        placeholder="Username"
+                        icon="UserIcon"
                     />
-
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
-
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
-                        id="password"
+                    <Input 
+                        label="Password"
                         type="password"
-                        name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
+                        onChange={e => setData('password', e.target.value)}
+                        error={errors.password}
+                        placeholder="Enter Password"
+                        icon="LockIcon"
                     />
+                    
+                    <div className="flex items-center justify-between text-sm">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                checked={data.rememberMe}
+                                onChange={e => setData('rememberMe', e.target.checked)}
+                                className="rounded border-gray-300 text-green-600" 
+                            />
+                            <span>Remember Me</span>
+                        </label>
+                        <a href="#" className="text-blue-600">Forgot Password?</a>
+                    </div>
 
-                    <InputError message={errors.password} className="mt-2" />
+                    <Button 
+                        type="submit" 
+                        isLoading={processing} 
+                        className="w-full bg-[#00a65a] hover:bg-[#008d4c] py-3"
+                    >
+                        Login
+                    </Button>
+                </form>
+
+                <div className="mt-8 text-sm">
+                    <p className="text-gray-500">Or don't have an account yet?</p>
+                    <a href="#" className="text-blue-600 font-semibold underline">Create my account</a>
                 </div>
-
-                <div className="block mt-4">
-                    <label className="flex items-center">
-                        <Checkbox
-                            name="remember"
-                            checked={data.remember}
-                            onChange={(e) => setData('remember', e.target.checked)}
-                        />
-                        <span className="ms-2 text-sm text-gray-600">Remember me</span>
-                    </label>
-                </div>
-
-                <div className="flex items-center justify-end mt-4">
-                    {canResetPassword && (
-                        <Link
-                            href={route('password.request')}
-                            className="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                            Forgot your password?
-                        </Link>
-                    )}
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
+                
+                <footer className="mt-12 text-blue-600 text-xs">
+                    <a href="#">Terms and Conditions</a>
+                </footer>
+            </div>
+        </div>
     );
 }
