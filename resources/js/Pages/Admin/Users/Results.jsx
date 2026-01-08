@@ -87,7 +87,7 @@ export default function Results({ resultData = [] }) {
 
           <div className="mt-8 bg-blue-50 border border-blue-200 p-3 rounded text-sm text-blue-700">
             On this form you can see and select registered users. You can change
-            the display order by clicking the column name. [cite: 78, 79]
+            the display order by clicking the column name.
           </div>
         </div>
       </div>

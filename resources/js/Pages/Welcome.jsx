@@ -2,6 +2,7 @@ import { Link, Head } from "@inertiajs/react";
 export default function Welcome({ auth, laravelVersion, phpVersion }) {
   return (
     <main className="bg-white">
+      coba render
     </main>
   );
 }

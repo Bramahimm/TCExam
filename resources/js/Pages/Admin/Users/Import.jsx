@@ -65,7 +65,7 @@ export default function Import() {
                     </div>
 
                     <div className="mt-8 bg-blue-50 border border-blue-200 p-3 rounded text-sm text-blue-700">
-                        With this form you can import to register users from an XML or CSV file. [cite: 69]
+                        With this form you can import to register users from an XML or CSV file.
                     </div>
                 </div>
             </div>
