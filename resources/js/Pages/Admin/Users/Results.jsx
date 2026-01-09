@@ -1,7 +1,42 @@
 import React from "react";
 import AdminLayout from "@/Layouts/AdminLayout";
+import Table from "@/Components/UI/Table";
+import Button from "@/Components/UI/Button";
 
 export default function Results({ resultData = [] }) {
+  const columns = [
+    { label: "Start Time", key: "start_time" },
+    {
+      label: "Duration",
+      key: "duration",
+      render: (val) => <span className="font-bold">{val}</span>,
+    },
+    {
+      label: "Score",
+      key: "score",
+      render: (val) => <span className="text-blue-600 font-black">{val}%</span>,
+    },
+    {
+      label: "Correct",
+      key: "correct",
+      render: (val) => <span className="text-green-600 font-bold">{val}</span>,
+    },
+    {
+      label: "Wrong",
+      key: "wrong",
+      render: (val) => <span className="text-red-500">{val}</span>,
+    },
+    {
+      label: "Status",
+      key: "status",
+      render: (val) => (
+        <span className="px-2 py-1 bg-gray-100 rounded text-[10px] uppercase font-bold">
+          {val}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <AdminLayout title="/Users/UserResult">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -9,85 +44,48 @@ export default function Results({ resultData = [] }) {
           <div className="p-3 bg-blue-100 rounded-full text-blue-600">
             <span className="material-icons text-3xl">analytics</span>
           </div>
-          <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
+          <h1 className="text-4xl font-bold text-gray-800 tracking-tight text-left">
             Users
           </h1>
         </div>
 
         <div className="p-8">
-          <h2 className="text-green-600 font-bold mb-4">User Result</h2>
+          <h2 className="text-green-600 font-bold mb-4">User Result Summary</h2>
 
-          {/* Filters Section */}
-          <div className="space-y-3 mb-8">
-            <ResultFilter label="Group" />
-            <ResultFilter label="User" />
-            <ResultFilter label="Test" />
-            <div className="flex ml-[120px]">
-              <button className="bg-blue-600 text-white text-[10px] px-4 py-1 rounded">
-                Select
-              </button>
+          {/* Filter Section - Dipertahankan stylenya namun diperluas */}
+          <div className="space-y-3 mb-8 bg-gray-50 p-6 rounded-xl border border-gray-200">
+            <ResultFilter label="Group" icon="groups" />
+            <ResultFilter label="User" icon="person" />
+            <ResultFilter label="Test" icon="assignment" />
+            <div className="flex md:ml-[120px] mt-4">
+              <Button className="bg-blue-600 px-12 uppercase tracking-widest text-xs">
+                Filter Data
+              </Button>
             </div>
           </div>
 
-          <div className="border border-gray-300 rounded overflow-x-auto">
-            <table className="w-full text-[10px] text-center border-collapse">
-              <thead>
-                <tr className="bg-gray-50 font-bold text-gray-600">
-                  <th className="border border-gray-300 p-1">#</th>
-                  <th className="border border-gray-300 p-1">Start</th>
-                  <th className="border border-gray-300 p-1">Time</th>
-                  <th className="border border-gray-300 p-1">Points</th>
-                  <th className="border border-gray-300 p-1">Correct</th>
-                  <th className="border border-gray-300 p-1">Wrong</th>
-                  <th className="border border-gray-300 p-1">Unanswered</th>
-                  <th className="border border-gray-300 p-1">Ungraded</th>
-                  <th className="border border-gray-300 p-1">Status</th>
-                  <th className="border border-gray-300 p-1">Comment</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="text-gray-500 font-medium">
-                  <td className="border border-gray-300 p-1">1</td>
-                  <td className="border border-gray-300 p-1">
-                    2025-12-22 07:06:59
-                  </td>
-                  <td className="border border-gray-300 p-1 font-bold">
-                    00:57:22
-                  </td>
-                  <td className="border border-gray-300 p-1">38.000 (38%)</td>
-                  <td className="border border-gray-300 p-1 text-blue-600">
-                    38 (38%)
-                  </td>
-                  <td className="border border-gray-300 p-1">62 (62%)</td>
-                  <td className="border border-gray-300 p-1 text-red-500 font-bold">
-                    0 (0%)
-                  </td>
-                  <td className="border border-gray-300 p-1">0 (0%)</td>
-                  <td className="border border-gray-300 p-1">Locked</td>
-                  <td className="border border-gray-300 p-1"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <Table
+            columns={columns}
+            data={resultData}
+            emptyMessage="No result records found for this criteria."
+          />
 
-          <div className="mt-6 flex flex-col items-center gap-2">
-            <p className="text-blue-600 font-bold text-[10px]">Download</p>
-            <div className="flex gap-2">
-              <button className="bg-red-500 text-white text-[10px] px-6 py-1 rounded shadow">
-                PDF
-              </button>
-              <button className="bg-green-500 text-white text-[10px] px-6 py-1 rounded shadow">
-                CSV
-              </button>
-              <button className="bg-[#00a65a] text-white text-[10px] px-6 py-1 rounded shadow text-xs">
-                XML
-              </button>
+          {/* Export Section */}
+          <div className="mt-8 flex flex-col items-center gap-3 border-t pt-8">
+            <p className="text-blue-600 font-black text-xs uppercase tracking-tighter">
+              Export Results
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button className="bg-red-500 px-8 text-xs font-bold">
+                PDF REPORT
+              </Button>
+              <Button className="bg-green-600 px-8 text-xs font-bold">
+                EXCEL/CSV
+              </Button>
+              <Button className="bg-[#00a65a] px-8 text-xs font-bold">
+                TCExam XML
+              </Button>
             </div>
-          </div>
-
-          <div className="mt-8 bg-blue-50 border border-blue-200 p-3 rounded text-sm text-blue-700">
-            On this form you can see and select registered users. You can change
-            the display order by clicking the column name.
           </div>
         </div>
       </div>
@@ -95,11 +93,17 @@ export default function Results({ resultData = [] }) {
   );
 }
 
-const ResultFilter = ({ label }) => (
-  <div className="flex items-center gap-4">
-    <label className="text-sm font-bold text-green-700 w-24">{label}</label>
+const ResultFilter = ({ label, icon }) => (
+  <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+    <label className="text-sm font-bold text-green-700 md:w-24 flex items-center gap-2">
+      <span className="material-icons text-sm">{icon}</span>
+      {label}
+    </label>
     <div className="flex-1 max-w-xl">
-      <input className="w-full border border-gray-400 p-1 rounded outline-none" />
+      <input
+        className="w-full border border-gray-300 p-2 rounded-lg outline-none focus:ring-2 focus:ring-green-500 transition-all shadow-inner"
+        placeholder={`Filter by ${label}...`}
+      />
     </div>
   </div>
 );

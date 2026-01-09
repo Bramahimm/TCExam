@@ -42,7 +42,7 @@ export default function SidebarPreview({ isVisible, onNavigate, activePageId }) 
                 { name: 'Class / Blocks', id: 'Modules_Class' },
                 { name: 'Subjects (Topics)', id: 'Modules_Subjects' },
                 { name: 'Question Bank', id: 'Modules_Questions' },
-                { name: 'Bulk Importer', id: 'Modules_Import' },
+                { name: 'Import Soal', id: 'Modules_Import' },
                 { name: 'Module Analytics', id: 'Modules_Results' },
             ]
         },
