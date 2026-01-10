@@ -2,21 +2,56 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use App\Models\Group;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        /*
+        |--------------------------------------------------------------------------
+        | GROUP / ANGKATAN
+        |--------------------------------------------------------------------------
+        */
+        $group = Group::firstOrCreate([
+            'name' => 'Angkatan 2024',
+        ], [
+            'description' => 'Peserta Angkatan 2024',
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN
+        |--------------------------------------------------------------------------
+        */
+        User::firstOrCreate(
+            ['email' => 'admin@cbt.test'],
+            [
+                'name' => 'Admin CBT',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
+                'is_active' => true,
+            ]
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | PESERTA
+        |--------------------------------------------------------------------------
+        */
+        $user = User::firstOrCreate(
+            ['email' => 'user@cbt.test'],
+            [
+                'name' => 'Peserta CBT',
+                'password' => Hash::make('user123'),
+                'role' => 'peserta',
+                'is_active' => true,
+            ]
+        );
+
+        $user->groups()->syncWithoutDetaching([$group->id]);
     }
 }

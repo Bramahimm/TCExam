@@ -2,6 +2,9 @@ import React from 'react';
 import { useForm, Head } from '@inertiajs/react';
 import Button from '@/Components/UI/Button';
 import Input from '@/Components/UI/Input';
+import { UserIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+
+
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -30,7 +33,7 @@ export default function Login() {
                         onChange={e => setData('username', e.target.value)}
                         error={errors.username}
                         placeholder="Username"
-                        icon="UserIcon"
+                        icon={UserIcon}
                     />
                     <Input 
                         label="Password"
@@ -39,7 +42,7 @@ export default function Login() {
                         onChange={e => setData('password', e.target.value)}
                         error={errors.password}
                         placeholder="Enter Password"
-                        icon="LockIcon"
+                        icon={LockClosedIcon}
                     />
                     
                     <div className="flex items-center justify-between text-sm">
