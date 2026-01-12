@@ -32,4 +32,4 @@ export default function AdminLayout({ children, title }) {
       </div>
     </div>
   );
-}
+}     
