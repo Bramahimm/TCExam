@@ -3,6 +3,7 @@
 namespace App\Http;
 
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use App\Http\Middleware\SecurityHeaders;
 
 class Kernel extends HttpKernel
 {
@@ -21,6 +22,8 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        \App\Http\Middleware\SecurityHeaders::class,
+        // \App\Http\Middleware\ContentSecurityPolicy::class,
     ];
 
     /**
@@ -42,7 +45,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
+            \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -65,5 +68,17 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
+        'active' => \App\Http\Middleware\EnsureUserIsActive::class,
+        'test.access' => \App\Http\Middleware\EnsureTestAccess::class,
+        'prevent.retake' => \App\Http\Middleware\PreventRetakeTest::class,
+        'exam.time' => \App\Http\Middleware\EnsureExamTimeIsValid::class,
+        'seb' => \App\Http\Middleware\EnsureSafeExamBrowser::class,
+        'single.session' => \App\Http\Middleware\EnsureSingleSession::class,
+        'exam.state' => \App\Http\Middleware\EnsureExamStateIsValid::class,
+
+
+
+
     ];
 }

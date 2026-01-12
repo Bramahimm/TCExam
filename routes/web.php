@@ -1,20 +1,37 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+/*
+|--------------------------------------------------------------------------
+| AUTH
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])
+        ->name('login');
+
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 });
 
-// ini routing sementara biar gua bisa liat ui nya
-Route::get('/preview', function () {
-    return Inertia::render('Admin/Preview');
+Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
+    ->middleware('auth')
+    ->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| ROOT (SMART REDIRECT – ANTI LOOP)
+|--------------------------------------------------------------------------
+*/
+Route::get('/', function () {
+    if (!auth()->check()) {
+        return Inertia::location(route('login'));
+    }
+
+    return auth()->user()->role === 'admin'
+        ? Inertia::location(route('admin.dashboard'))
+        : Inertia::location(route('peserta.dashboard'));
 });
