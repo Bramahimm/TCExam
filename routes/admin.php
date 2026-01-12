@@ -11,7 +11,8 @@ use App\Http\Controllers\Admin\{
     MonitoringController,
     ForceSubmitController,
     ImportUserController,
-    ImportQuestionController
+    ImportQuestionController,
+    UserController,
 };
 
 Route::middleware([
@@ -23,6 +24,7 @@ Route::middleware([
     // Dashboard
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])
         ->name('dashboard');
+    Route::resource('users', UserController::class);
 
     // Master Data
     Route::resource('modules', ModuleController::class);
