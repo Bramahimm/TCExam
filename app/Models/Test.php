@@ -22,7 +22,16 @@ class Test extends Model
     public function topics()
     {
         return $this->belongsToMany(Topic::class, 'test_topics')
-            ->withPivot(['total_questions', 'question_type']);
+            ->withPivot([
+                'total_questions',
+                'question_type',
+                // 🔥 WAJIB DITAMBAHKAN AGAR SETTINGAN TERBACA 🔥
+                'random_questions',
+                'random_answers',
+                'max_answers',
+                'answer_mode'
+            ])
+            ->withTimestamps();
     }
 
     // Ujian ↔ Angkatan

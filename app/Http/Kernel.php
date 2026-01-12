@@ -76,6 +76,7 @@ class Kernel extends HttpKernel
         'seb' => \App\Http\Middleware\EnsureSafeExamBrowser::class,
         'single.session' => \App\Http\Middleware\EnsureSingleSession::class,
         'exam.state' => \App\Http\Middleware\EnsureExamStateIsValid::class,
+        'exam.time' => \App\Http\Middleware\EnsureExamTimeIsValid::class,
 
 
 
