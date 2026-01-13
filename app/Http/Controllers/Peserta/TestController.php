@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Auth;
 class TestController extends Controller
 {
     /**
-     * List ujian sesuai grup user
+     * List ujian dengan Sorting Prioritas
      */
     public function index()
     {
@@ -26,7 +26,59 @@ class TestController extends Controller
             $q->whereIn('groups.id', $user->groups->pluck('id'));
         })
             ->where('is_active', true)
-            ->get();
+            ->get()
+            ->map(function ($test) use ($user) {
+                $testUser = TestUser::where('test_id', $test->id)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                $now = now();
+                $status = 'KERJAKAN';
+                $priority = 2; // Default priority (Normal)
+
+                // 1. Cek Status Spesifik User
+                if ($testUser) {
+                    if ($testUser->status == 'submitted') {
+                        $status = 'SELESAI';
+                        $priority = 4; // Paling bawah
+                    } elseif ($testUser->status == 'expired') {
+                        $status = 'KADALUARSA';
+                        $priority = 5;
+                    } elseif ($testUser->status == 'ongoing') {
+                        // Cek waktu global
+                        if ($now > $test->end_time) {
+                            $status = 'KADALUARSA';
+                            $priority = 5;
+                        } else {
+                            $status = 'LANJUTKAN';
+                            $priority = 1; // Paling atas (Urgent)
+                        }
+                    }
+                }
+                // 2. Cek Status Global
+                else {
+                    if ($now < $test->start_time) {
+                        $status = 'BELUM_MULAI';
+                        $priority = 3;
+                    } elseif ($now > $test->end_time) {
+                        $status = 'KADALUARSA';
+                        $priority = 5;
+                    } else {
+                        $status = 'KERJAKAN'; // Sedang aktif
+                        $priority = 2;
+                    }
+                }
+
+                $test->user_status = $status;
+                $test->sort_priority = $priority; // Helper untuk sorting
+                return $test;
+            })
+            // 🔥 LOGIC SORTING: Urutkan berdasarkan prioritas, lalu waktu mulai
+            ->sortBy([
+                ['sort_priority', 'asc'],
+                ['start_time', 'desc'],
+            ])
+            ->values(); // Reset array keys agar rapi di JSON
 
         return inertia('Peserta/Tests/Index', compact('tests'));
     }
@@ -38,52 +90,60 @@ class TestController extends Controller
     {
         $user = Auth::user();
 
-        $testUser = TestUser::firstOrCreate(
-            [
-                'test_id' => $test->id,
-                'user_id' => $user->id,
-            ],
-            [
-                'started_at' => now(),
-                'status' => 'ongoing',
-            ]
-        );
-
-        // 🔒 AUTO EXPIRE WAJIB DI AWAL
-        ExamStateService::autoExpire($testUser);
-
-        if ($testUser->status === 'expired') {
-            return redirect()
-                ->route('peserta.dashboard')
-                ->withErrors('Waktu ujian telah habis');
+        // Cek Waktu Global
+        if (now() > $test->end_time) {
+            return redirect()->route('peserta.tests.index')->withErrors('Waktu habis.');
         }
 
-        $session = QuestionGeneratorService::generate($test, $user->id);
+        // Create or Get Session
+        $testUser = TestUser::firstOrCreate(
+            ['test_id' => $test->id, 'user_id' => $user->id],
+            ['started_at' => now(), 'status' => 'ongoing']
+        );
+
+        if (is_null($testUser->started_at)) {
+            $testUser->update(['started_at' => now(), 'status' => 'ongoing']);
+        }
+
+        // Cek Expired
+        ExamStateService::autoExpire($testUser);
+        if ($testUser->status === 'expired' || $testUser->status === 'submitted') {
+            return redirect()->route('peserta.dashboard')->withErrors('Akses ditutup.');
+        }
+
+        // Ambil Soal
+        $questions = QuestionGeneratorService::getQuestions($test, $user->id);
+
+        // 🔥 FIX 1: Ambil Jawaban Existing & Format Key-nya berdasarkan Question ID
+        // Ini memperbaiki bug warna navigasi saat lompat nomor atau refresh
+        $existingAnswers = $testUser->answers()
+            ->select('question_id', 'answer_id', 'answer_text')
+            ->get()
+            ->mapWithKeys(function ($ans) {
+                return [
+                    $ans->question_id => [
+                        'answerId' => $ans->answer_id,
+                        'answerText' => $ans->answer_text
+                    ]
+                ];
+            });
 
         return inertia('Peserta/Tests/Start', [
             'test' => $test,
             'testUserId' => $testUser->id,
-            'questionIds' => $session['question_ids'],
-            'startedAt' => $testUser->started_at,
+            'questions' => $questions,
             'remainingSeconds' => ExamTimeService::remainingSeconds($testUser),
+            'existingAnswers' => $existingAnswers, // 🔥 Dikirim ke Frontend
+            'currentUser' => $user, // Opsional: kirim user explisit jika perlu debug NPM
         ]);
     }
 
-    /**
-     * Autosave jawaban
-     */
-    public function answer(
-        SaveAnswerRequest $request,
-        TestUser $testUser
-    ) {
-        // 🔒 AUTO EXPIRE SEBELUM APA PUN
+    public function answer(SaveAnswerRequest $request, TestUser $testUser)
+    {
         ExamStateService::autoExpire($testUser);
 
         if ($testUser->status === 'expired') {
-            return response()->json([
-                'status' => 'expired',
-                'message' => 'Waktu ujian telah habis',
-            ], 403);
+            return response()->json(['status' => 'expired'], 403);
         }
 
         $data = $request->validated();
@@ -91,48 +151,29 @@ class TestController extends Controller
         AnswerService::save(
             $testUser->id,
             $data['question_id'],
-            $data['answer_id']   ?? null,
-            $data['answer_text'] ?? null,
-            $data['is_correct']  ?? null,
-            $data['score']       ?? null
+            $data['answer_id'] ?? null,
+            $data['answer_text'] ?? null
         );
 
         return response()->json(['status' => 'saved']);
     }
 
-    /**
-     * Submit ujian
-     */
     public function submit(TestUser $testUser)
     {
-        // 🔒 AUTO EXPIRE SEBELUM SUBMIT
-        ExamStateService::autoExpire($testUser);
-
-        if ($testUser->status === 'expired') {
-            return redirect()
-                ->route('peserta.dashboard')
-                ->withErrors('Waktu ujian telah habis');
-        }
-
         $testUser->update([
             'status' => 'submitted',
-            'finished_at' => now(),
+            'finished_at' => now()
         ]);
 
         $totalScore = ScoringService::calculate($testUser);
 
         $testUser->result()->create([
             'total_score' => $totalScore,
-            'status' => 'pending',
+            'status' => 'pending'
         ]);
 
-        QuestionGeneratorService::clear(
-            $testUser->test_id,
-            $testUser->user_id
-        );
+        QuestionGeneratorService::clear($testUser->test_id, $testUser->user_id);
 
-        return redirect()
-            ->route('peserta.dashboard')
-            ->with('success', 'Ujian berhasil dikirim');
+        return redirect()->route('peserta.dashboard')->with('success', 'Ujian berhasil diselesaikan.');
     }
 }

@@ -21,10 +21,16 @@ class ExamTimeService
      */
     public static function getEndTime(TestUser $testUser): Carbon
     {
+        // 🔒 HARD GUARD (ANTI CRASH)
+        if (is_null($testUser->started_at)) {
+            return now(); // fallback aman
+        }
+
         return $testUser->started_at
             ->copy()
             ->addMinutes($testUser->test->duration);
     }
+
 
     /**
      * Sisa waktu (detik)

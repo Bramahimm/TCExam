@@ -17,6 +17,16 @@ class TestUser extends Model
         'status',
     ];
 
+    /**
+     * ⏱️ CASTING WAJIB (ANTI ERROR TIMER)
+     */
+    protected $casts = [
+        'started_at'  => 'datetime',
+        'finished_at' => 'datetime',
+    ];
+
+    /* ================= RELATIONS ================= */
+
     // TestUser → Ujian
     public function test()
     {
