@@ -2,58 +2,79 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Peserta\{
-    DashboardController as PesertaDashboardController,
-    TestController as PesertaTestController
+    DashboardController,
+    TestController,
+    ResultController
 };
 
 /*
 |--------------------------------------------------------------------------
-| PESERTA – NON UJIAN
+| PESERTA ROUTES (SMART ENV AWARE)
 |--------------------------------------------------------------------------
 */
-Route::middleware([
+
+// Middleware wajib peserta (SELALU)
+$baseMiddlewares = [
     'auth',
     'active',
     'role:peserta',
     'single.session',
-])->prefix('peserta')->name('peserta.')->group(function () {
+];
 
-    Route::get('/dashboard', [PesertaDashboardController::class, 'index'])
-        ->name('dashboard');
+// Middleware ujian (HANYA AKTIF DI PRODUCTION)
+$examMiddlewares = app()->environment('production')
+    ? [
+        'seb',
+        'exam.state',
+        'exam.time',
+        'test.access',
+        'prevent.retake',
+    ]
+    : [];
 
-    Route::get('/tests', [PesertaTestController::class, 'index'])
-        ->name('tests.index');
-});
+Route::middleware($baseMiddlewares)
+    ->prefix('peserta')
+    ->name('peserta.')
+    ->group(function () use ($examMiddlewares) {
 
+        /* ================= DASHBOARD ================= */
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard');
 
-/*
-|--------------------------------------------------------------------------
-| PESERTA – UJIAN (FULL LOCK 🔒)
-|--------------------------------------------------------------------------
-*/
-Route::middleware([
-    'auth',
-    'active',
-    'role:peserta',
+        /* ================= DAFTAR UJIAN ================= */
+        Route::get('/tests', [TestController::class, 'index'])
+            ->name('tests.index');
 
-    'single.session',
-    'seb',
-    
-    'exam.state',
-    'exam.time',
-    'test.access',
-    'prevent.retake',
-])->prefix('peserta')->name('peserta.')->group(function () {
+        /* ================= HASIL UJIAN ================= */
+        Route::get('/results', [ResultController::class, 'index'])
+            ->name('results.index');
 
-    Route::get('/tests/{test}/start',
-        [PesertaTestController::class, 'start']
-    )->name('tests.start');
+        Route::get('/results/{testUser}', [ResultController::class, 'show'])
+            ->name('results.show');
 
-    Route::post('/tests/{testUser}/answer',
-        [PesertaTestController::class, 'answer']
-    )->name('tests.answer');
+        /*
+        |--------------------------------------------------------------------------
+        | MODE UJIAN (LOCKED)
+        |--------------------------------------------------------------------------
+        */
+        Route::middleware($examMiddlewares)->group(function () {
 
-    Route::post('/tests/{testUser}/submit',
-        [PesertaTestController::class, 'submit']
-    )->name('tests.submit');
-});
+            /* ================= MULAI UJIAN ================= */
+            Route::get(
+                '/tests/{test}/start',
+                [TestController::class, 'start']
+            )->name('tests.start');
+
+            /* ================= AUTOSAVE ================= */
+            Route::post(
+                '/tests/{testUser}/answer',
+                [TestController::class, 'answer']
+            )->name('tests.answer');
+
+            /* ================= SUBMIT ================= */
+            Route::post(
+                '/tests/{testUser}/submit',
+                [TestController::class, 'submit']
+            )->name('tests.submit');
+        });
+    });

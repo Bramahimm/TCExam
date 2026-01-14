@@ -11,6 +11,11 @@ class EnsureSingleSession
 {
     public function handle(Request $request, Closure $next)
     {
+        // Lewati pengecekan di environment lokal
+        if (app()->environment('local')) {
+            return $next($request);
+        }
+
         /** @var User|null $user */
         $user = Auth::user();
 
