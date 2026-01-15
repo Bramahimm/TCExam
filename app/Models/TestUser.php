@@ -18,7 +18,7 @@ class TestUser extends Model
     ];
 
     /**
-     * ⏱️ CASTING WAJIB (ANTI ERROR TIMER)
+     *  CASTING WAJIB (ANTI ERROR TIMER)
      */
     protected $casts = [
         'started_at'  => 'datetime',

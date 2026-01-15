@@ -38,6 +38,9 @@ Route::middleware([
     Route::post('/import/users', [ImportUserController::class, 'store'])
         ->name('import.users');
 
+    Route::get('/users/import/template', [ImportUserController::class, 'downloadTemplate'])
+        ->name('import.template');
+
     Route::post('/import/questions', [ImportQuestionController::class, 'store'])
         ->name('import.questions');
 
