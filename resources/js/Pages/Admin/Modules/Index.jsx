@@ -2,16 +2,14 @@ import React, { useMemo } from "react";
 import { Head, usePage } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
 
-/**
- * Sub pages
- */
+/* Sub pages */
 import ClassPage from "./Class";
 import Questions from "./Questions";
 import Subjects from "./Subjects";
 import Results from "./Results";
 import ImportPage from "./Import";
 
-export default function Index({ modules }) {
+export default function Index(props) {
   const { url } = usePage();
 
   const section = useMemo(() => {
@@ -22,28 +20,28 @@ export default function Index({ modules }) {
   const renderSection = () => {
     switch (section) {
       case "class":
-        return <ClassPage modules={modules} />;
+        return <ClassPage {...props} />;
 
       case "questions":
-        return <Questions />;
+        return <Questions {...props} />;
 
       case "subjects":
-        return <Subjects />;
+        return <Subjects {...props} />;
 
       case "results":
-        return <Results />;
+        return <Results {...props} />;
 
       case "import":
-        return <ImportPage />;
+        return <ImportPage {...props} />;
 
       default:
-        return <ClassPage modules={modules} />;
+        return <ClassPage {...props} />;
     }
   };
 
   return (
-    <AdminLayout title={`Modules - ${section}`}>
-      <Head title="Modules" />
+    <AdminLayout>
+      <Head title={`Modules - ${section}`} />
 
       <div className="space-y-6">
         <div key={section} className="animate-in fade-in duration-300">

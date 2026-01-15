@@ -14,19 +14,33 @@ class ModuleController extends Controller
     /**
      * List modul
      */
+
     public function index()
     {
         return inertia('Admin/Modules/Index', [
+            // CLASS
             'modules' => Module::latest()->get(),
+
+            // SUBJECTS
+            'topics' => \App\Models\Topic::with('module')
+                ->where('is_active', true)
+                ->get(),
+
+            // QUESTIONS + ANSWERS
+            'questions' => \App\Models\Question::with([
+                'topic',
+                'answers'
+            ])->latest()->get(),
         ]);
     }
+
 
     /**
      * Form tambah modul
      */
     public function create()
     {
-        return inertia('Admin/Modules/Create');
+        return inertia('Admin/Modules/Create'); 
     }
 
     /**
