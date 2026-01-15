@@ -49,7 +49,7 @@ export default function Results({ users = [] }) {
           <span className="material-icons">analytics</span>
         </div>
         <h1 className="text-xl font-semibold text-gray-800 tracking-tight">
-          Hasil
+          Hasil Nilai Individu
         </h1>
       </div>
 
