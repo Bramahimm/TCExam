@@ -4,92 +4,104 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Question;
-use App\Models\Topic;
+use App\Models\Answer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class QuestionController extends Controller
 {
-    public function index()
-    {
-        return inertia('Admin/Questions/Index', [
-            'questions' => Question::with('topic.module')->latest()->get(),
-            'topics' => Topic::with('module')->where('is_active', true)->get(),
-        ]);
-    }
-
-    public function create()
-    {
-        return inertia('Admin/Questions/Create', [
-            'topics' => Topic::with('module')->where('is_active', true)->get(),
-        ]);
-    }
-
+    /**
+     * STORE QUESTION
+     */
     public function store(Request $request)
     {
-        $request->validate([
-            'topic_id' => 'required|exists:topics,id',
-            'type' => 'required|string',
-            'question_text' => 'nullable|string',
-            'score' => 'nullable|integer|min:1',
-            'is_active' => 'boolean',
+        $validated = $request->validate([
+            'topic_id'        => 'required|exists:topics,id',
+            'type'            => 'required|in:essay,multiple_choice',
+            'question_text'   => 'required|string',
+            'options'         => 'nullable|array',
+            'options.*.text'  => 'required_with:options|string',
+            'options.*.is_correct' => 'boolean',
         ]);
 
-        Question::create($request->only(
-            'topic_id',
-            'type',
-            'question_text',
-            'question_image',
-            'score',
-            'is_active'
-        ));
+        DB::transaction(function () use ($validated) {
 
-        return redirect()->route('admin.questions.index')
-            ->with('success', 'Soal berhasil ditambahkan');
+            $question = Question::create([
+                'topic_id'      => $validated['topic_id'],
+                'type'          => $validated['type'],
+                'question_text' => $validated['question_text'],
+                'is_active'     => true,
+            ]);
+
+            if (
+                $validated['type'] === 'multiple_choice'
+                && !empty($validated['options'])
+            ) {
+                foreach ($validated['options'] as $opt) {
+                    Answer::create([
+                        'question_id' => $question->id,
+                        'answer_text' => $opt['text'],
+                        'is_correct'  => $opt['is_correct'] ?? false,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Question berhasil ditambahkan');
     }
 
-    public function show(Question $question)
-    {
-        return inertia('Admin/Questions/Show', [
-            'question' => $question->load('answers', 'topic.module'),
-        ]);
-    }
-
-    public function edit(Question $question)
-    {
-        return inertia('Admin/Questions/Edit', [
-            'question' => $question,
-            'topics' => Topic::with('module')->where('is_active', true)->get(),
-        ]);
-    }
-
+    /**
+     * UPDATE QUESTION
+     */
     public function update(Request $request, Question $question)
     {
-        $request->validate([
-            'topic_id' => 'required|exists:topics,id',
-            'type' => 'required|string',
-            'question_text' => 'nullable|string',
-            'score' => 'nullable|integer|min:1',
-            'is_active' => 'boolean',
+        $validated = $request->validate([
+            'topic_id'        => 'required|exists:topics,id',
+            'type'            => 'required|in:essay,multiple_choice',
+            'question_text'   => 'required|string',
+            'options'         => 'nullable|array',
+            'options.*.text'  => 'required_with:options|string',
+            'options.*.is_correct' => 'boolean',
         ]);
 
-        $question->update($request->only(
-            'topic_id',
-            'type',
-            'question_text',
-            'question_image',
-            'score',
-            'is_active'
-        ));
+        DB::transaction(function () use ($validated, $question) {
 
-        return redirect()->route('admin.questions.index')
-            ->with('success', 'Soal berhasil diperbarui');
+            $question->update([
+                'topic_id'      => $validated['topic_id'],
+                'type'          => $validated['type'],
+                'question_text' => $validated['question_text'],
+            ]);
+
+            // reset answers
+            $question->answers()->delete();
+
+            if (
+                $validated['type'] === 'multiple_choice'
+                && !empty($validated['options'])
+            ) {
+                foreach ($validated['options'] as $opt) {
+                    Answer::create([
+                        'question_id' => $question->id,
+                        'answer_text' => $opt['text'],
+                        'is_correct'  => $opt['is_correct'] ?? false,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->back()->with('success', 'Question berhasil diperbarui');
     }
 
+    /**
+     * DELETE QUESTION
+     */
     public function destroy(Question $question)
     {
-        $question->delete();
+        DB::transaction(function () use ($question) {
+            $question->answers()->delete();
+            $question->delete();
+        });
 
-        return redirect()->route('admin.questions.index')
-            ->with('success', 'Soal berhasil dihapus');
+        return redirect()->back()->with('success', 'Question berhasil dihapus');
     }
 }

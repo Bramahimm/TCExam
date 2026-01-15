@@ -1,68 +1,198 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { useForm } from "@inertiajs/react";
 import Button from "@/Components/UI/Button";
-import { Plus, Pencil, Trash2, GraduationCap } from "lucide-react";
+import Modal from "@/Components/UI/Modal";
+
+import {
+  PlusIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  AcademicCapIcon,
+} from "@heroicons/react/24/solid";
 
 export default function Class({ modules }) {
-  const [classes, setClasses] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
 
-  useEffect(() => {
-    setClasses(modules ?? []);
-  }, [modules]);
+  const { data, setData, post, put, delete: destroy, processing, reset } =
+    useForm({
+      name: "",
+      description: "",
+    });
+
+  /* ================= OPEN MODAL ================= */
+  const openCreate = () => {
+    reset();
+    setEditId(null);
+    setIsOpen(true);
+  };
+
+  const openEdit = (item) => {
+    setEditId(item.id);
+    setData({
+      name: item.name,
+      description: item.description ?? "",
+    });
+    setIsOpen(true);
+  };
+
+  /* ================= SUBMIT ================= */
+  const submit = (e) => {
+    e.preventDefault();
+
+    if (editId) {
+      put(route("admin.modules.update", editId), {
+        onSuccess: () => setIsOpen(false),
+      });
+    } else {
+      post(route("admin.modules.store"), {
+        onSuccess: () => setIsOpen(false),
+      });
+    }
+  };
+
+  /* ================= DELETE ================= */
+  const handleDelete = (id) => {
+    if (!confirm("Yakin ingin menghapus kelas ini?")) return;
+
+    destroy(route("admin.modules.destroy", id));
+  };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="p-6 border-b flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <GraduationCap className="text-green-600" />
-            Academic Classes
-          </h1>
-          <p className="text-sm text-gray-500">
-            Manage your school classes
-          </p>
+    <>
+      {/* ================= HEADER ================= */}
+      <div className="bg-white rounded-xl border shadow-sm">
+        <div className="p-6 border-b flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <AcademicCapIcon className="w-7 h-7 text-emerald-600" />
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">
+                Academic Classes
+              </h2>
+              <p className="text-sm text-gray-500">
+                Manage academic class modules
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={openCreate}
+            className="bg-emerald-600 flex items-center gap-2"
+          >
+            <PlusIcon className="w-5 h-5" />
+            Add Class
+          </Button>
         </div>
 
-        <Button className="bg-green-600 flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add Class
-        </Button>
-      </div>
-
-      <div className="p-6">
-        {classes.length === 0 ? (
-          <div className="text-center text-gray-400 py-10">
-            No classes found
-          </div>
-        ) : (
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="text-gray-500 border-b">
-                <th className="py-3 text-left">Class Name</th>
-                <th className="py-3 text-center">Students</th>
-                <th className="py-3 text-right">Actions</th>
+        {/* ================= TABLE ================= */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+              <tr>
+                <th className="px-6 py-4 text-left">Class Name</th>
+                <th className="px-6 py-4 text-left">Description</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
+
             <tbody>
-              {classes.map((item) => (
-                <tr key={item.id} className="border-b">
-                  <td className="py-3 font-medium">{item.name}</td>
-                  <td className="py-3 text-center">-</td>
-                  <td className="py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="danger" size="sm">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+              {modules.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="3"
+                    className="px-6 py-10 text-center text-gray-400"
+                  >
+                    No classes found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                modules.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="border-t hover:bg-gray-50 transition"
+                  >
+                    <td className="px-6 py-4 font-semibold text-gray-800">
+                      {item.name}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {item.description || "-"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(item)}
+                          className="p-2 rounded-lg border hover:bg-blue-50 text-blue-600"
+                        >
+                          <PencilSquareIcon className="w-5 h-5" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-2 rounded-lg border hover:bg-red-50 text-red-600"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* ================= MODAL ================= */}
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={editId ? "Edit Class" : "Add Class"}
+      >
+        <form onSubmit={submit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Class Name
+            </label>
+            <input
+              type="text"
+              value={data.name}
+              onChange={(e) => setData("name", e.target.value)}
+              className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              rows="3"
+              value={data.description}
+              onChange={(e) => setData("description", e.target.value)}
+              className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="submit"
+              loading={processing}
+              className="bg-emerald-600"
+            >
+              {editId ? "Update" : "Save"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </>
   );
 }

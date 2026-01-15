@@ -1,98 +1,131 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useForm } from "@inertiajs/react";
 import Button from "@/Components/UI/Button";
 import QuestionForm from "@/Features/Modules/Components/QuestionForm";
-import { mockQuestions } from "@/Data/relationalData";
-import { mockSubjects } from "@/Data/subjectData";
 
-export default function Questions() {
-  const [selectedSubjectId, setSelectedSubjectId] = useState(
-    mockSubjects[0].id
+export default function Questions({ questions = [], topics = [] }) {
+  const [selectedTopicId, setSelectedTopicId] = useState(
+    topics[0]?.id || null
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editQuestion, setEditQuestion] = useState(null);
 
-  const questions = mockQuestions.filter(
-    (q) => q.subjectId === parseInt(selectedSubjectId)
-  );
+  const filteredQuestions = useMemo(() => {
+    if (!selectedTopicId) return [];
+    return questions.filter(
+      (q) => q.topic_id === selectedTopicId
+    );
+  }, [questions, selectedTopicId]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      {/* Subject Selector */}
-      <div className="lg:col-span-3 space-y-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200">
-          <h2 className="text-xs font-black text-gray-400 uppercase mb-4 tracking-widest">
+      {/* SUBJECT SELECTOR */}
+      <div className="lg:col-span-3">
+        <div className="bg-white p-4 rounded-xl border">
+          <h2 className="text-xs font-black uppercase text-gray-400 mb-4">
             Select Subject
           </h2>
+
           <div className="space-y-2">
-            {mockSubjects.map((sub) => (
+            {topics.map((t) => (
               <button
-                key={sub.id}
-                onClick={() => setSelectedSubjectId(sub.id)}
-                className={`w-full text-left p-3 rounded-lg text-sm transition-all ${
-                  selectedSubjectId === sub.id
-                    ? "bg-green-600 text-white shadow-md font-bold"
+                key={t.id}
+                onClick={() => setSelectedTopicId(t.id)}
+                className={`w-full text-left p-3 rounded-lg text-sm ${
+                  selectedTopicId === t.id
+                    ? "bg-green-600 text-white font-bold"
                     : "hover:bg-gray-100 text-gray-600"
                 }`}
               >
-                {sub.title}
+                {t.name}
               </button>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Question List */}
+      {/* QUESTION LIST */}
       <div className="lg:col-span-9 space-y-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center">
+        <div className="bg-white p-6 rounded-xl border flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800">
-            Questions in Subject
+            Questions
           </h2>
+
           <Button
-            onClick={() => setIsFormOpen(!isFormOpen)}
+            onClick={() => {
+              setEditQuestion(null);
+              setIsFormOpen(true);
+            }}
             className="bg-blue-600"
           >
-            {isFormOpen ? "Close Editor" : "+ Create Question"}
+            + Create Question
           </Button>
         </div>
 
         {isFormOpen ? (
-          <QuestionForm onCancel={() => setIsFormOpen(false)} />
+          <QuestionForm
+            topicId={selectedTopicId}
+            question={editQuestion}
+            onCancel={() => setIsFormOpen(false)}
+          />
         ) : (
           <div className="space-y-4">
-            {questions.map((q) => (
+            {filteredQuestions.length === 0 && (
+              <div className="text-center text-gray-400 py-20">
+                No questions found
+              </div>
+            )}
+
+            {filteredQuestions.map((q) => (
               <div
                 key={q.id}
-                className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden"
+                className="bg-white p-6 rounded-xl border relative"
               >
                 <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-[10px] font-black uppercase text-gray-400">
-                    ID: {q.id} | {q.type}
+
+                <div className="flex justify-between mb-4">
+                  <span className="text-xs font-bold uppercase text-gray-400">
+                    #{q.id} • {q.type}
                   </span>
-                  <div className="flex gap-2 text-gray-300">
-                    <span className="cursor-pointer hover:text-blue-500">
-                      edit
-                    </span>
-                    <span className="cursor-pointer hover:text-red-500">
-                      delete
-                    </span>
+
+                  <div className="flex gap-3 text-sm">
+                    <button
+                      className="text-blue-500"
+                      onClick={() => {
+                        setEditQuestion(q);
+                        setIsFormOpen(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="text-red-500"
+                      onClick={() =>
+                        router.delete(
+                          route("admin.questions.destroy", q.id)
+                        )
+                      }
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
 
-                <p className="text-gray-800 font-medium mb-4">{q.text}</p>
+                <p className="font-medium mb-4">{q.question_text}</p>
 
-                {q.options.length > 0 && (
+                {q.type === "multiple_choice" && q.answers?.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {q.options.map((opt) => (
+                    {q.answers.map((a) => (
                       <div
-                        key={opt.id}
-                        className={`p-2 rounded text-xs border ${
-                          opt.isCorrect
+                        key={a.id}
+                        className={`p-2 text-xs rounded border ${
+                          a.is_correct
                             ? "bg-green-50 border-green-200 text-green-700 font-bold"
-                            : "bg-gray-50 border-gray-200"
+                            : "bg-gray-50"
                         }`}
                       >
-                        {opt.isCorrect && "✓ "}
-                        {opt.text}
+                        {a.is_correct && "✓ "} {a.answer_text}
                       </div>
                     ))}
                   </div>

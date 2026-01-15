@@ -33,15 +33,14 @@ class TopicController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        Topic::create($request->only(
-            'module_id',
-            'name',
-            'description',
-            'is_active'
-        ));
+        Topic::create([
+            'module_id' => $request->module_id,
+            'name' => $request->name,
+            'description' => $request->description,
+            'is_active' => true,
+        ]);
 
-        return redirect()->route('admin.topics.index')
-            ->with('success', 'Topik berhasil ditambahkan');
+        return redirect()->back()->with('success', 'Subject added');
     }
 
     public function show(Topic $topic)

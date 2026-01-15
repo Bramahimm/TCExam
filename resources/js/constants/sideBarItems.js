@@ -61,9 +61,14 @@ export const SideBarItems = [
     subMenus: [
 
       {
-        name: "Class",
+        name: "Module",
         route: "admin.modules.index",
         params: { section: "class" },
+      },
+      {
+        name: "Topic",
+        route: "admin.modules.index",
+        params: { section: "subjects" },
       },
       {
         name: "Questions",
@@ -71,12 +76,7 @@ export const SideBarItems = [
         params: { section: "questions" },
       },
       {
-        name: "Subjects",
-        route: "admin.modules.index",
-        params: { section: "subjects" },
-      },
-      {
-        name: "Results",
+        name: "Answers",
         route: "admin.modules.index",
         params: { section: "results" },
       },
