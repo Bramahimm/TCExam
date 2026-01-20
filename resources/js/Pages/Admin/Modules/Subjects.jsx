@@ -1,76 +1,219 @@
 import React, { useState } from "react";
-import AdminLayout from "@/Layouts/AdminLayout";
+import { router } from "@inertiajs/react";
 import Button from "@/Components/UI/Button";
-import {mockSubjects } from "@/Data/subjectData";
-import { mockClasses } from "@/Data/relationalData";
+import {
+  TrashIcon,
+  PlusIcon,
+  PencilIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 
-export default function Subjects() {
-  const [selectedClassId, setSelectedClassId] = useState(mockClasses[0].id);
-
-  const filteredSubjects = mockSubjects.filter(
-    (s) => s.classId === parseInt(selectedClassId)
+export default function Subjects({ modules, topics }) {
+  const [selectedModuleId, setSelectedModuleId] = useState(
+    modules[0]?.id || ""
   );
 
+  const [showModal, setShowModal] = useState(false);
+  const [editingTopic, setEditingTopic] = useState(null);
+
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+  });
+
+  const filteredTopics = topics.filter(
+    (t) => t.module_id === Number(selectedModuleId)
+  );
+
+  /* =====================
+   * CREATE / UPDATE
+   * ===================== */
+  const submit = (e) => {
+    e.preventDefault();
+
+    if (editingTopic) {
+      // UPDATE
+      router.put(
+        route("admin.topics.update", editingTopic.id),
+        {
+          module_id: selectedModuleId,
+          name: form.name,
+          description: form.description,
+          is_active: true,
+        },
+        {
+          preserveScroll: true,
+          onSuccess: () => resetModal(),
+        }
+      );
+    } else {
+      // CREATE
+      router.post(
+        route("admin.topics.store"),
+        {
+          module_id: selectedModuleId,
+          name: form.name,
+          description: form.description,
+        },
+        {
+          preserveScroll: true,
+          onSuccess: () => resetModal(),
+        }
+      );
+    }
+  };
+
+  const resetModal = () => {
+    setShowModal(false);
+    setEditingTopic(null);
+    setForm({ name: "", description: "" });
+  };
+
+  /* =====================
+   * DELETE
+   * ===================== */
+  const destroy = (id) => {
+    if (!confirm("Delete this subject? All related questions will be lost.")) {
+      return;
+    }
+
+    router.delete(route("admin.topics.destroy", id), {
+      preserveScroll: true,
+    });
+  };
+
+  /* =====================
+   * EDIT
+   * ===================== */
+  const openEdit = (topic) => {
+    setEditingTopic(topic);
+    setForm({
+      name: topic.name,
+      description: topic.description ?? "",
+    });
+    setShowModal(true);
+  };
+
   return (
-    <AdminLayout title="Modules - Subjects">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <label className="text-sm font-bold text-gray-600 uppercase">
-              Class Filter:
-            </label>
+    <>
+      <div className="bg-white rounded-xl border">
+        {/* HEADER */}
+        <div className="p-6 border-b flex justify-between items-center">
+          <div className="flex gap-3 items-center">
+            <span className="text-sm font-bold">Class</span>
             <select
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="border rounded p-2 text-sm focus:ring-2 focus:ring-green-500">
-              {mockClasses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              className="border rounded px-3 py-1"
+              value={selectedModuleId}
+              onChange={(e) => setSelectedModuleId(e.target.value)}
+            >
+              {modules.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
                 </option>
               ))}
             </select>
           </div>
-          <Button className="bg-green-600 w-full md:w-auto">
-            + Add Subject
+
+          <Button
+            className="bg-green-600 flex gap-2"
+            onClick={() => setShowModal(true)}
+          >
+            <PlusIcon className="w-4 h-4" />
+            Add Subject
           </Button>
         </div>
 
-        <div className="p-6">
-          {filteredSubjects.length === 0 ? (
-            <div className="text-center py-20 border-2 border-dashed rounded-xl">
-              <span className="material-icons text-gray-300 text-5xl mb-2">
-                folder_off
-              </span>
-              <p className="text-gray-400">No subjects found for this class.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSubjects.map((subject) => (
-                <div
-                  key={subject.id}
-                  className="border-2 border-gray-100 rounded-xl p-5 hover:border-green-500 transition-all group">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-bold text-gray-800 leading-tight">
-                      {subject.title}
-                    </h3>
-                    <span className="bg-blue-50 text-blue-600 text-[10px] px-2 py-1 rounded font-black uppercase">
-                      {subject.questionCount} Qs
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button className="flex-1 text-xs py-1" variant="outline">
-                      Manage Questions
-                    </Button>
-                    <Button className="bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-red-50 hover:text-red-500 transition-colors">
-                      <span className="material-icons text-sm">delete</span>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* LIST */}
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {filteredTopics.length === 0 && (
+            <p className="text-sm text-gray-400 italic">
+              No subjects for this class
+            </p>
           )}
+
+          {filteredTopics.map((s) => (
+            <div
+              key={s.id}
+              className="border rounded-xl p-4 hover:border-green-500"
+            >
+              <div className="flex justify-between mb-2 items-start">
+                <h3 className="font-bold">{s.name}</h3>
+
+                <div className="flex gap-2">
+                  <button onClick={() => openEdit(s)}>
+                    <PencilIcon className="w-4 h-4 text-blue-500" />
+                  </button>
+
+                  <button onClick={() => destroy(s.id)}>
+                    <TrashIcon className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                {s.questions_count ?? 0} Questions
+              </p>
+            </div>
+          ))}
         </div>
       </div>
-    </AdminLayout>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <form
+            onSubmit={submit}
+            className="bg-white rounded-xl w-full max-w-md p-6"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold">
+                {editingTopic ? "Edit Subject" : "Add Subject"}
+              </h2>
+              <button type="button" onClick={resetModal}>
+                <XMarkIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold">Subject Name</label>
+                <input
+                  required
+                  className="w-full border rounded px-3 py-2"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm({ ...form, name: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold">Description</label>
+                <textarea
+                  className="w-full border rounded px-3 py-2"
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetModal}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-green-600">
+                {editingTopic ? "Update Subject" : "Save Subject"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
   );
 }

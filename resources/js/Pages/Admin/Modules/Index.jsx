@@ -1,22 +1,17 @@
 import React, { useMemo } from "react";
 import { Head, usePage } from "@inertiajs/react";
+import AdminLayout from "@/Layouts/AdminLayout";
 
-/**
- * Semua file dalam folder Modules
- */
+/* Sub pages */
 import ClassPage from "./Class";
 import Questions from "./Questions";
 import Subjects from "./Subjects";
 import Results from "./Results";
 import ImportPage from "./Import";
 
-export default function Index({ modules }) {
+export default function Index(props) {
   const { url } = usePage();
 
-  /**
-   * Ambil section dari query string
-   * default: class
-   */
   const section = useMemo(() => {
     const params = new URLSearchParams(url.split("?")[1]);
     return params.get("section") || "class";
@@ -25,27 +20,27 @@ export default function Index({ modules }) {
   const renderSection = () => {
     switch (section) {
       case "class":
-        return <ClassPage modules={modules} />;
+        return <ClassPage {...props} />;
 
       case "questions":
-        return <Questions />;
+        return <Questions {...props} />;
 
       case "subjects":
-        return <Subjects />;
+        return <Subjects {...props} />;
 
       case "results":
-        return <Results />;
+        return <Results {...props} />;
 
       case "import":
-        return <ImportPage />;
+        return <ImportPage {...props} />;
 
       default:
-        return <ClassPage modules={modules} />;
+        return <ClassPage {...props} />;
     }
   };
 
   return (
-    <>
+    <AdminLayout>
       <Head title={`Modules - ${section}`} />
 
       <div className="space-y-6">
@@ -53,6 +48,6 @@ export default function Index({ modules }) {
           {renderSection()}
         </div>
       </div>
-    </>
+    </AdminLayout>
   );
 }

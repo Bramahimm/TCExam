@@ -5,7 +5,8 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
-class HandleInertiaRequests extends Middleware {
+class HandleInertiaRequests extends Middleware
+{
     /**
      * The root template that is loaded on the first page visit.
      *
@@ -16,7 +17,8 @@ class HandleInertiaRequests extends Middleware {
     /**
      * Determine the current asset version.
      */
-    public function version(Request $request): string|null {
+    public function version(Request $request): string|null
+    {
         return parent::version($request);
     }
 
@@ -25,16 +27,18 @@ class HandleInertiaRequests extends Middleware {
      *
      * @return array<string, mixed>
      */
-    public function share(Request $request): array {
-        return [
-            ...parent::share($request),
+    public function share(Request $request): array
+    {
+        return array_merge(parent::share($request), [
             'auth' => [
                 'user' => $request->user(),
             ],
+            // 👇 UPDATE BAGIAN INI
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
-                'error' => fn() => $request->session()->get('error'),
-            ]
-        ];
+                'error'   => fn() => $request->session()->get('error'),
+                'warning' => fn() => $request->session()->get('warning'),
+            ],
+        ]);
     }
 }

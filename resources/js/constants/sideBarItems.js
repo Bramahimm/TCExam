@@ -59,87 +59,36 @@ export const SideBarItems = [
     icon: Package,
     route: "admin.modules.index",
     subMenus: [
+
       {
-        name: "Modules",
-        id: "Class",
+        name: "Module",
         route: "admin.modules.index",
         params: { section: "class" },
       },
       {
         name: "Topic",
-        id: "Questions",
-        route: "admin.modules.index",
-        params: { section: "questions" },
-      },
-      {
-        name: "Questions",
-        id: "Subjects",
         route: "admin.modules.index",
         params: { section: "subjects" },
       },
       {
-        name: "Results",
-        id: "Results",
+        name: "Questions",
+        route: "admin.modules.index",
+        params: { section: "questions" },
+      },
+      {
+        name: "Answers",
         route: "admin.modules.index",
         params: { section: "results" },
       },
       {
         name: "Import",
-        id: "Import",
         route: "admin.modules.index",
         params: { section: "import" },
       },
     ],
   },
-  {
-    name: "Tests",
-    icon: ClipboardCheck,
-    route: "admin.tests.index",
-    subMenus: [
-      {
-        name: "Daftar Ujian",
-        id: "Tests",
-        route: "admin.tests.index",
-        params: { section: "tests" }, 
-      },
-      {
-        name: "Import Jawaban",
-        id: "Answer",
-        route: "admin.tests.index",
-        params: { section: "answers" }, 
-      },
-      {
-        name: "Omr Bulk Importer",
-        id: "Bulk",
-        route: "admin.tests.index",
-        params: { section: "bulk" }, 
-      },
-      {
-        name: "Evaluasi",
-        id: "Evaluation",
-        route: "admin.tests.index", 
-        params: { section: "evaluation" },
-      },
-      {
-        name: "Hasil Akhir Ujian",
-        id: "Exam",
-        route: "admin.tests.index",
-        params: { section: "results" }, 
-      },
-      {
-        name: "Ringkasan Mahasiswa",
-        id: "Overview",
-        route: "admin.tests.index", 
-        params: { section: "overview" },
-      },
-      {
-        name: "Statistics",
-        id: "Statistics",
-        route: "admin.tests.index", 
-        params: { section: "statistics" },
-      },
-    ],
-  },
+
+  { name: "Tests", icon: ClipboardCheck, route: "admin.tests.index" },
   { name: "Backup", icon: Database, route: "#" },
   { name: "Public", icon: Globe, route: "#" },
   { name: "Help", icon: HelpCircle, route: "#" },
