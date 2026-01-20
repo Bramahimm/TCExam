@@ -89,7 +89,7 @@ class ModuleController extends Controller
         Module::create($request->validated());
 
         return redirect()
-            ->route('admin.modules.index')
+            ->route('admin.modules.index', ['section' => 'class'])
             ->with('success', 'Modul berhasil ditambahkan');
     }
 
@@ -121,7 +121,7 @@ class ModuleController extends Controller
         $module->update($request->validated());
 
         return redirect()
-            ->route('admin.modules.index')
+            ->route('admin.modules.index', ['section' => 'class'])
             ->with('success', 'Modul berhasil diperbarui');
     }
 
@@ -133,7 +133,7 @@ class ModuleController extends Controller
         $module->delete();
 
         return redirect()
-            ->route('admin.modules.index')
+            ->route('admin.modules.index', ['section' => 'class'])
             ->with('success', 'Modul berhasil dihapus');
     }
 }

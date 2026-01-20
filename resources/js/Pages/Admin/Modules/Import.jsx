@@ -7,22 +7,20 @@ import {
     ArrowRightIcon, BookOpenIcon, FolderIcon 
 } from "@heroicons/react/24/outline";
 
-// Menggunakan Alert Import Soal yang sudah kita buat
 import QuestionImportAlert from "@/Pages/Admin/Components/QuestionImportAlert";
 
-// Terima props 'modules' dan 'topics' dari controller
-export default function Import({ modules, topics }) {
+// 🔥 FIX: Tambahkan default value = [] agar tidak error 'undefined'
+export default function Import({ modules = [], topics = [] }) {
   const { data, setData, post, processing, errors, reset } = useForm({
-    module_id: "", // State untuk menyimpan Modul yang dipilih
+    module_id: "",
     topic_id: "",
     file: null,
   });
 
   const { flash } = usePage().props;
 
-  // 🔥 LOGIC FILTERING: Hanya tampilkan topik yang sesuai dengan module_id yang dipilih
   const filteredTopics = useMemo(() => {
-      if (!data.module_id) return []; // Jika belum pilih modul, topik kosong
+      if (!data.module_id || !Array.isArray(topics)) return []; // Validasi tambahan
       return topics.filter(t => t.module_id == data.module_id);
   }, [data.module_id, topics]);
 
@@ -34,7 +32,6 @@ export default function Import({ modules, topics }) {
       forceFormData: true,
       onSuccess: () => {
           reset('file'); 
-          // Reset manual input file
           const fileInput = document.getElementById('file-upload');
           if(fileInput) fileInput.value = null;
       },
@@ -81,14 +78,14 @@ export default function Import({ modules, topics }) {
             <div className="p-6 md:p-8">
               <form onSubmit={submitImport} className="space-y-6">
                 
-                {/* 1. PILIH MODUL (Baru) */}
+                {/* 1. PILIH MODUL */}
                 <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Pilih Modul <span className="text-red-500">*</span></label>
                     <div className="relative">
                         <select 
                             value={data.module_id} 
                             onChange={(e) => {
-                                setData(d => ({ ...d, module_id: e.target.value, topic_id: "" })); // Reset topic saat ganti modul
+                                setData(d => ({ ...d, module_id: e.target.value, topic_id: "" })); 
                             }} 
                             className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 pl-10 py-2.5 appearance-none bg-white"
                         >
@@ -101,20 +98,19 @@ export default function Import({ modules, topics }) {
                     </div>
                 </div>
 
-                {/* 2. PILIH TOPIK (Filtered) */}
+                {/* 2. PILIH TOPIK */}
                 <div className={`transition-all duration-300 ${!data.module_id ? 'opacity-50 pointer-events-none' : ''}`}>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Pilih Topik Tujuan <span className="text-red-500">*</span></label>
                     <div className="relative">
                         <select 
                             value={data.topic_id} 
                             onChange={(e) => setData('topic_id', e.target.value)} 
-                            disabled={!data.module_id} // Disable jika belum pilih modul
+                            disabled={!data.module_id} 
                             className="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 pl-10 py-2.5 appearance-none bg-white disabled:bg-gray-100"
                         >
                             <option value="">
                                 {data.module_id ? "-- Silakan Pilih Topik --" : "-- Pilih Modul Terlebih Dahulu --"}
                             </option>
-                            {/* Render hasil filter */}
                             {filteredTopics.map((t) => (
                                 <option key={t.id} value={t.id}>{t.name}</option>
                             ))}
@@ -147,7 +143,6 @@ export default function Import({ modules, topics }) {
                     {errors.file && <p className="text-red-500 text-sm mt-1">{errors.file}</p>}
                 </div>
 
-                {/* BUTTONS */}
                 <div className="flex justify-end pt-4 border-t border-gray-100">
                     <Button type="submit" loading={processing} disabled={!data.file || !data.topic_id} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg flex items-center gap-2">
                         {processing ? "Memproses..." : "Import Soal"}
@@ -159,7 +154,7 @@ export default function Import({ modules, topics }) {
           </div>
         </div>
 
-        {/* Sidebar Info */}
+        {/* Sidebar Info (Tetap sama) */}
         <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                 <div className="flex items-center gap-2 mb-4 border-b border-gray-100 pb-3">
