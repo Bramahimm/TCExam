@@ -1,66 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { useForm, usePage } from "@inertiajs/react";
-import Button from "@/Components/UI/Button";
+import React, { useState } from "react";
+import { router, usePage, useForm } from "@inertiajs/react";
+import { Pencil, Trash2, Plus } from "lucide-react"; 
 import Table from "@/Components/UI/Table";
+import Button from "@/Components/UI/Button";
+import Pagination from "@/Components/UI/Pagination";
+import DataFilter from "@/Components/Shared/DataFilter";
 import Modal from "@/Components/UI/Modal";
 import Input from "@/Components/UI/Input";
 
-// --- SUB-KOMPONEN KECIL (STYLING & UI) ---
+// Helper format tanggal
+const formatDate = (date) =>
+  date
+    ? new Date(date).toLocaleDateString("id-ID", { dateStyle: "medium" })
+    : "-";
 
-const GroupHeader = ({ onAdd, count }) => (
-  <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
-    <div className="flex items-center gap-4">
-      <div className="p-2.5">
-        <span className="material-icons">workspaces</span>
-      </div>
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">
-          Manajemen Grup
-        </h1>
-        <p className="text-[11px] text-gray-500 font-semibold">
-          {count} Grup Terdaftar
-        </p>
-      </div>
-    </div>
-    <Button
-      onClick={onAdd}
-      className="bg-green-600 font-semibold hover:bg-green-700 flex items-center gap-1 text-xs">
-      <span className="material-icons text-sm">add</span> Tambah Grup
-    </Button>
-  </div>
-);
-
-const GroupFlash = ({ message }) => (
-  <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 rounded-r-xl shadow-sm animate-in slide-in-from-top duration-300">
-    <div className="flex items-center gap-3">
-      <span className="material-icons text-green-500">check_circle</span>
-      <p className="text-sm font-medium">{message}</p>
-    </div>
-  </div>
-);
-
-// --- KOMPONEN UTAMA ---
-
-export default function Grouping({ groups = [] }) {
-  const { props } = usePage();
-  const { flash } = props;
-
+export default function Grouping({ groups }) {
+  const { filters } = usePage().props;
+  const [search, setSearch] = useState(filters?.search || "");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
-  const [showFlash, setShowFlash] = useState(false);
-
-  // Logic Flash Message & LocalStorage Recovery
-  useEffect(() => {
-    const savedMessage = localStorage.getItem("group_flash");
-    if (flash?.success || savedMessage) {
-      if (savedMessage && !flash?.success) flash.success = savedMessage;
-      setShowFlash(true);
-      localStorage.removeItem("group_flash");
-      const timer = setTimeout(() => setShowFlash(false), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [flash]);
 
   const {
     data,
@@ -77,32 +36,40 @@ export default function Grouping({ groups = [] }) {
     description: "",
   });
 
-  // Handlers
-  const handleOpenModal = (group = null) => {
+  // --- Logic Search ---
+  const handleSearch = (val) => {
+    setSearch(val);
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+      router.get(
+        route("admin.users.index"),
+        { section: "groups", search: val },
+        {
+          preserveState: true,
+          preserveScroll: true,
+          replace: true,
+        },
+      );
+    }, 400);
+  };
+
+  // --- Logic CRUD ---
+  const openModal = (group = null) => {
     clearErrors();
-    if (group) {
-      setEditMode(true);
-      setSelectedId(group.id);
-      setData({ name: group.name, description: group.description || "" });
-    } else {
-      setEditMode(false);
-      reset();
-    }
+    setEditMode(!!group);
+    setSelectedId(group?.id || null);
+    setData({ name: group?.name || "", description: group?.description || "" });
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const options = {
-      preserveScroll: true,
       onSuccess: () => {
-        localStorage.setItem(
-          "group_flash",
-          editMode ? "Grup diperbarui" : "Grup ditambahkan"
-        );
         setIsModalOpen(false);
         reset();
       },
+      preserveScroll: true,
     };
     editMode
       ? put(route("admin.groups.update", selectedId), options)
@@ -110,85 +77,138 @@ export default function Grouping({ groups = [] }) {
   };
 
   const handleDelete = (id) => {
-    if (confirm("Hapus grup ini secara permanen?")) {
+    if (
+      confirm("Hapus grup ini? User di dalamnya akan kehilangan status grup.")
+    ) {
       destroy(route("admin.groups.destroy", id), { preserveScroll: true });
     }
   };
 
-  const columns = [
-    { label: "Nama Grup", key: "name", className: "font-bold text-gray-800" },
-    {
-      label: "Keterangan",
-      key: "description",
-      className: "text-gray-500 italic text-xs",
-    },
-    {
-      label: "Dibuat pada",
-      key: "created_at",
-      render: (v) => (
-        <span className="text-[10px] font-mono">
-          {v ? new Date(v).toLocaleDateString("id-ID") : "-"}
-        </span>
-      ),
-    },
-  ];
-
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden text-left">
-      <GroupHeader onAdd={() => handleOpenModal()} count={groups.length} />
-
-      <div className="p-8">
-        {showFlash && flash?.success && <GroupFlash message={flash.success} />}
-
-        <Table
-          columns={columns}
-          data={groups}
-          emptyMessage="Belum ada grup yang dibuat."
-          renderActions={(group) => (
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleOpenModal(group)}
-                className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-all">
-                <span className="material-icons text-sm">edit</span>
-              </button>
-              <button
-                onClick={() => handleDelete(group.id)}
-                className="text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition-all">
-                <span className="material-icons text-sm">delete</span>
-              </button>
-            </div>
-          )}
-        />
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* Header Section */}
+      <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30 flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">
+            Manajemen Grup
+          </h1>
+          <p className="text-xs text-gray-500 font-semibold">
+            {groups.total || 0} Grup Terdaftar
+          </p>
+        </div>
+        {/* Button Tambah Menggunakan Komponen Button */}
+        <Button
+          onClick={() => openModal()}
+          className="bg-green-600 hover:bg-green-700 text-white text-xs px-4 py-2 flex items-center gap-2">
+          <span>Tambah Grup</span>
+        </Button>
       </div>
 
+      <div className="p-6">
+        {/* Search Filter */}
+        <DataFilter
+          searchPlaceholder="Cari grup..."
+          searchValue={search}
+          onSearchChange={handleSearch}
+          filters={[]}
+          onReset={() => handleSearch("")}
+        />
+
+        {/* Table Data */}
+        <Table
+          data={groups.data || []}
+          emptyMessage="Belum ada grup dibuat."
+          columns={[
+            {
+              label: "Nama Grup",
+              key: "name",
+              className: "font-bold text-gray-800",
+            },
+            {
+              label: "Jumlah Mahasiswa",
+              key: "users_count",
+              className: "text-center",
+              render: (n) => (
+                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs font-bold">
+                  {n}
+                </span>
+              ),
+            },
+            {
+              label: "Keterangan",
+              key: "description",
+              className: "text-gray-500",
+              render: (v) => v || "-",
+            },
+            {
+              label: "Dibuat pada",
+              key: "created_at",
+              className: "text-sm font-bold",
+              render: (v) => formatDate(v),
+            },
+            {
+              label: "Aksi",
+              key: "actions",
+              className: "text-center",
+              render: (_, row) => (
+                <div className="flex justify-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline" 
+                    onClick={() => openModal(row)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-300"
+                    title="Edit Grup">
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline" // Base variant
+                    onClick={() => handleDelete(row.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300"
+                    title="Hapus Grup">
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Hapus
+                  </Button>
+                </div>
+              ),
+            },
+          ]}
+        />
+
+        {/* Pagination */}
+        <div className="mt-4">
+          {groups.links && <Pagination links={groups.links} />}
+        </div>
+      </div>
+
+      {/* Modal Form */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editMode ? "Edit Grup" : "Tambah Grup"}>
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <Input
             label="Nama Grup"
             value={data.name}
             onChange={(e) => setData("name", e.target.value)}
             error={errors.name}
-            placeholder={"masukkan nama mahasiswa"}
-            required
+            placeholder="Contoh: Angkatan 2024"
+            autoFocus
           />
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-500 uppercase">
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
               Keterangan
             </label>
             <textarea
-              className={`w-full border p-3 rounded-xl text-sm min-h-[100px] outline-none focus:ring-2 focus:ring-green-500 ${
-                errors.description ? "border-red-500" : "border-gray-200"
-              }`}
+              className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-green-500 outline-none min-h-[80px]"
               value={data.description}
               onChange={(e) => setData("description", e.target.value)}
-            placeholder={"masukkan sedikit deskripsi"}
-
+              placeholder="Opsional..."
             />
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
@@ -198,7 +218,7 @@ export default function Grouping({ groups = [] }) {
             <Button
               type="submit"
               loading={processing}
-              className="bg-green-600 px-8">
+              className="bg-green-600 text-white hover:bg-green-700">
               Simpan
             </Button>
           </div>

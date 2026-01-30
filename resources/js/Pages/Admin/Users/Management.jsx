@@ -1,11 +1,63 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
+import { router, usePage } from "@inertiajs/react";
+import { Pencil, Plus } from "lucide-react"; // import icon lucide
 import Table from "@/Components/UI/Table";
-import Button from "@/Components/UI/Button";
+import Button from "@/Components/UI/Button"; // pake komponen button kita
+import Pagination from "@/Components/UI/Pagination";
+import DataFilter from "@/Components/Shared/DataFilter";
 
 export default function Management({ users, onAddClick, onEditClick }) {
+  const { groups, filters } = usePage().props;
+
+  const [params, setParams] = useState({
+    search: filters?.search || "",
+    group_id: filters?.group_id || "",
+  });
+
+  const refreshData = (newParams) => {
+    setParams(newParams);
+    router.get(
+      route("admin.users.index"),
+      { ...newParams, section: "management" },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+      },
+    );
+  };
+
+  const filterConfig = useMemo(
+    () => [
+      {
+        label: "Grup / Angkatan",
+        value: params.group_id,
+        options: groups.map((g) => ({ value: g.id, label: g.name })),
+        onChange: (val) => refreshData({ ...params, group_id: val }),
+      },
+    ],
+    [params, groups],
+  );
+
+  const onSearch = (val) => {
+    setParams((prev) => ({ ...prev, search: val }));
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+      router.get(
+        route("admin.users.index"),
+        { ...params, search: val, section: "management" },
+        {
+          preserveState: true,
+          preserveScroll: true,
+          replace: true,
+        },
+      );
+    }, 400);
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      {/* Header Section */}
+      {/* header section */}
       <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -17,34 +69,29 @@ export default function Management({ users, onAddClick, onEditClick }) {
                 Manajemen Mahasiswa
               </h1>
               <p className="text-[11px] text-gray-500 font-semibold">
-                {users.length} mahasiswa terdaftar dalam sistem
+                {users.total || 0} mahasiswa terdaftar dalam sistem
               </p>
             </div>
           </div>
+
+          {/* tombol tambah pake component button + lucide icon */}
           <Button
             onClick={onAddClick}
-            className="bg-green-600 hover:bg-green-700 text-white font-medium px-[0.7rem] py-2 text-sm transition-colors flex items-center">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Tambah Mahasiswa
+            className="bg-green-600 hover:bg-green-700 text-white font-medium px-[0.7rem] py-2 text-sm transition-colors flex items-center gap-2">
+            <span>Tambah Mahasiswa</span>
           </Button>
         </div>
       </div>
 
-
-
-      {/* Data Table */}
       <div className="p-6">
+        <DataFilter
+          searchPlaceholder="Cari nama atau NPM..."
+          searchValue={params.search}
+          onSearchChange={onSearch}
+          filters={filterConfig}
+          onReset={() => refreshData({ search: "", group_id: "" })}
+        />
+
         <Table
           columns={[
             {
@@ -67,35 +114,37 @@ export default function Management({ users, onAddClick, onEditClick }) {
                   <span className="text-gray-400 italic">-</span>
                 ),
             },
+            // kolom aksi yang udah direfactor
+            {
+              label: "",
+              key: "actions",
+              className: "text-right",
+              render: (_, user) => (
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditClick(user);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-300"
+                    title="Edit Data Mahasiswa">
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
+                  </Button>
+                </div>
+              ),
+            },
           ]}
-          data={users}
-          emptyMessage={
-            <div className="py-12 text-center">
-              <div className="p-3 bg-gray-100 rounded-full w-12 h-12 mx-auto mb-3 flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-gray-500 font-medium">
-                Belum ada mahasiswa terdaftar
-              </p>
-              <p className="text-sm text-gray-400 mt-1">
-                Mulai dengan menambahkan mahasiswa pertama Anda
-              </p>
-            </div>
-          }
-          onRowClick={onEditClick}
-          className="cursor-pointer hover:bg-gray-50 transition-colors"
+          data={users.data || []}
+          emptyMessage="Belum ada mahasiswa terdaftar"
+          className="hover:bg-gray-50 transition-colors"
         />
+
+        <div className="mt-4">
+          {users.links && <Pagination links={users.links} />}
+        </div>
       </div>
     </div>
   );

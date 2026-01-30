@@ -1,140 +1,167 @@
 import React, { useState, useMemo } from "react";
-import { router } from "@inertiajs/react";
-import Button from "@/Components/UI/Button";
+import { router, usePage } from "@inertiajs/react";
+import { CheckSquare, Search } from "lucide-react"; // Icon Lucide
 import Table from "@/Components/UI/Table";
+import Button from "@/Components/UI/Button";
+import Pagination from "@/Components/UI/Pagination";
+import DataFilter from "@/Components/Shared/DataFilter";
 
-// --- SUB-KOMPONEN KECIL ---
+export default function Selection({ users }) {
+  // Ambil groups & filters dari usePage (dikirim via middleware/controller)
+  const { groups, filters } = usePage().props;
 
-const SelectionHeader = () => (
-  <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30 flex items-center gap-4 text-left">
-    <div className="p-2.5">
-      <span className="material-icons">person_search</span>
-    </div>
-    <div>
-      <h1 className="text-xl font-semibold text-gray-900">Seleksi Pengguna</h1>
-      <p className="text-[11px] text-gray-500 font-semibold">Manajemen Aksi Massal & Batching</p>
-    </div>
-  </div>
-);
+  // State untuk parameter filter/search
+  const [params, setParams] = useState({
+    search: filters?.search || "",
+    group_id: filters?.group_id || "",
+  });
 
-const BatchInstruction = () => (
-  <div className="space-y-3 bg-gray-50 p-6 rounded-xl border border-gray-200 text-left">
-    <h3 className="text-[12px] font-bold text-gray-400 mb-2">Panduan Penggunaan</h3>
-    {[
-      "Gunakan filter grup untuk menyaring daftar mahasiswa.",
-      "Centang mahasiswa yang ingin diproses secara massal.",
-      "Pilih grup tujuan lalu klik 'Pindahkan' atau klik 'Hapus'."
-    ].map((text, i) => (
-      <div key={i} className="flex items-start gap-3 text-xs text-gray-600 italic">
-        <span className="text-blue-600 font-bold">{i + 1}.</span>
-        <p>{text}</p>
-      </div>
-    ))}
-  </div>
-);
-
-// --- KOMPONEN UTAMA ---
-
-export default function Selection({ users = [], groups = [] }) {
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [filterGroup, setFilterGroup] = useState("");
-  const [targetGroup, setTargetGroup] = useState("");
-
-  const hasRoute = (routeName) => {
-    try { return route().has(routeName); } catch (e) { return false; }
+  // --- Logic Refresh Data (Server-side) ---
+  const refreshData = (newParams) => {
+    setParams(newParams);
+    router.get(
+      route("admin.users.index"),
+      { ...newParams, section: "selection" }, // Pastikan section='selection'
+      {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+      },
+    );
   };
 
-  const filteredUsers = useMemo(() => {
-    if (!filterGroup) return users;
-    return users.filter((u) => u.groups.some((g) => g.id === parseInt(filterGroup)));
-  }, [filterGroup, users]);
+  // --- Config Dropdown Filter (Grup) ---
+  const filterConfig = useMemo(
+    () => [
+      {
+        label: "Filter Grup",
+        value: params.group_id,
+        options: groups.map((g) => ({ value: g.id, label: g.name })),
+        onChange: (val) => refreshData({ ...params, group_id: val }),
+      },
+    ],
+    [params, groups],
+  );
 
-  const toggleSelectAll = (e) => {
-    setSelectedUsers(e.target.checked ? filteredUsers.map((u) => u.id) : []);
+  // --- Logic Search dengan Debounce ---
+  const onSearch = (val) => {
+    setParams((prev) => ({ ...prev, search: val }));
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+      router.get(
+        route("admin.users.index"),
+        { ...params, search: val, section: "selection" },
+        {
+          preserveState: true,
+          preserveScroll: true,
+          replace: true,
+        },
+      );
+    }, 400);
   };
-
-  const toggleSelectUser = (id) => {
-    setSelectedUsers((prev) => prev.includes(id) ? prev.filter((uid) => uid !== id) : [...prev, id]);
-  };
-
-  const handleBatchAssign = () => {
-    if (selectedUsers.length === 0 || !targetGroup) return alert("Pilih data dan grup tujuan!");
-    router.post(route("admin.users.batch-assign"), { user_ids: selectedUsers, group_id: targetGroup }, {
-      onSuccess: () => { setSelectedUsers([]); alert("Batch Assign Berhasil!"); }
-    });
-  };
-
-  const handleBatchDelete = () => {
-    if (selectedUsers.length === 0) return;
-    if (!hasRoute("admin.users.batch-destroy")) return alert("Fitur belum aktif di Backend.");
-    if (confirm(`Hapus ${selectedUsers.length} user secara permanen?`)) {
-      router.delete(route("admin.users.batch-destroy"), { data: { user_ids: selectedUsers }, onSuccess: () => setSelectedUsers([]) });
-    }
-  };
-
-  const columns = [
-    {
-      label: (
-        <input type="checkbox" onChange={toggleSelectAll} checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0} className="w-4 h-4 rounded text-green-600" />
-      ),
-      key: "checkbox",
-      render: (_, user) => (
-        <input type="checkbox" checked={selectedUsers.includes(user.id)} onChange={() => toggleSelectUser(user.id)} className="w-4 h-4 rounded text-green-600" />
-      ),
-    },
-    { label: "Nama Lengkap", key: "name", className: "font-bold text-gray-800" },
-    { label: "NPM", key: "npm", className: "font-mono text-xs text-gray-500" },
-    {
-      label: "Grup",
-      key: "groups",
-      render: (val) => (
-        <div className="flex flex-wrap gap-1">
-          {val.map((g) => <span key={g.id} className="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full border border-blue-100 font-bold uppercase">{g.name}</span>)}
-        </div>
-      ),
-    },
-  ];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden text-left">
-      <SelectionHeader />
-
-      <div className="p-8">
-        {/* Filter Section */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-8 flex flex-col md:flex-row items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="material-icons text-blue-600">filter_alt</span>
-            <span className="text-xs font-bold text-blue-800">Filter Grup:</span>
-          </div>
-          <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className="flex-1 border cursor-pointer border-blue-200 bg-white text-sm rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-            <option value="">Tampilkan Semua Pengguna</option>
-            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
-          {selectedUsers.length > 0 && (
-            <div className="px-4 py-2 bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-widest animate-pulse">
-              {selectedUsers.length} Terpilih
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      {/* --- Header Section --- */}
+      <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5">
+              {/* Icon CheckSquare untuk Selection */}
+              <CheckSquare className="w-6 h-6 text-gray-700" />
             </div>
-          )}
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Pilih Pengguna
+              </h1>
+              <p className="text-[11px] text-gray-500 font-semibold">
+                {/* PERBAIKAN 1: Gunakan .total */}
+                {users.total || 0} pengguna tersedia untuk seleksi
+              </p>
+            </div>
+          </div>
+          {/* Tombol Aksi Massal (Nanti bisa difungsikan) */}
+          <Button
+            variant="outline"
+            className="text-xs px-4 py-2 border-gray-300 text-gray-600"
+            onClick={() => alert("Fitur Bulk Action akan segera hadir!")}>
+            Pilih Semua
+          </Button>
         </div>
+      </div>
 
-        <Table columns={columns} data={filteredUsers} emptyMessage="Tidak ada data ditemukan." />
+      <div className="p-6">
+        {/* --- Search & Filter --- */}
+        <DataFilter
+          searchPlaceholder="Cari pengguna..."
+          searchValue={params.search}
+          onSearchChange={onSearch}
+          filters={filterConfig}
+          onReset={() => refreshData({ search: "", group_id: "" })}
+        />
 
-        {/* Action Area */}
-        <div className="mt-10 pt-8 border-t border-gray-100 grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-4">Aksi Massal</h3>
-            <div className="flex flex-col sm:flex-row gap-3 p-5 bg-gray-50 rounded-2xl border border-gray-100 shadow-inner">
-              <select value={targetGroup} onChange={(e) => setTargetGroup(e.target.value)} className="flex-1 border border-gray-300 bg-white text-sm rounded-xl px-3 py-2 outline-none">
-                <option value="">Target Grup Tujuan...</option>
-                {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-              </select>
-              <div className="flex gap-2">
-                <Button onClick={handleBatchAssign} disabled={!targetGroup || selectedUsers.length === 0} className="bg-green-600 text-[10px] font-semibold px-6">Pindahkan</Button>
-                <Button onClick={handleBatchDelete} disabled={selectedUsers.length === 0} variant="danger" className="text-[10px] font-semibold px-6">Delete</Button>
-              </div>
-            </div>
-          </div>
-          <BatchInstruction />
+        {/* --- Table Data --- */}
+        <Table
+          data={users.data || []}
+          emptyMessage="Tidak ada pengguna ditemukan"
+          columns={[
+            // Kolom Checkbox (Simulasi dulu)
+            {
+              label: "",
+              key: "select",
+              className: "w-10 text-center",
+              render: (_, row) => (
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500 cursor-pointer"
+                />
+              ),
+            },
+            {
+              label: "NPM",
+              key: "npm",
+              className: "font-mono text-sm w-32",
+            },
+            {
+              label: "Nama Lengkap",
+              key: "name",
+              className: "font-semibold",
+            },
+            {
+              label: "Grup",
+              key: "groups",
+              render: (g) =>
+                g && g.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {g.map((i) => (
+                      <span
+                        key={i.id}
+                        className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-bold border border-gray-200">
+                        {i.name}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400 italic text-xs">-</span>
+                ),
+            },
+            {
+              label: "Email",
+              key: "email",
+              className: "text-gray-500 text-xs",
+            },
+            {
+              label: "Hasil Ujian",
+              key: "result",
+              className: "font-semibold",
+            },
+          ]}
+          className="hover:bg-gray-50 transition-colors"
+        />
+
+        {/* Pagination */}
+        <div className="mt-4">
+          {users.links && <Pagination links={users.links} />}
         </div>
       </div>
     </div>

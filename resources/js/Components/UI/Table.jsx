@@ -40,7 +40,9 @@ export default function Table({
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               {columns.map((col) => (
-                <th key={col.key} className="px-6 py-4 text-gray-700">
+                <th
+                  key={col.key}
+                  className={`px-6 py-4 text-gray-700 ${col.className || ""}`}>
                   {col.label}
                 </th>
               ))}
@@ -57,13 +59,13 @@ export default function Table({
                 key={idx}
                 onClick={() => onRowClick && onRowClick(row)}
                 className={`
-                                    hover:bg-green-50/50 transition-colors
+                                    transition-colors
                                     ${onRowClick ? "cursor-pointer" : ""}
                                 capitalize`}>
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className="px-6 py-4 font-medium text-gray-700">
+                    className={`px-6 py-4 font-medium text-gray-700 ${col.className || ""}`}>
                     {col.render ? col.render(row[col.key], row) : row[col.key]}
                   </td>
                 ))}

@@ -6,22 +6,31 @@ use App\Http\Controllers\Controller;
 use App\Models\Group;
 use Illuminate\Http\Request;
 
-class GroupController extends Controller
-{
-    public function index()
-    {
+class GroupController extends Controller {
+    public function index() {
         return inertia('Admin/Groups/Index', [
             'groups' => Group::latest()->get(),
         ]);
     }
 
-    public function create()
-    {
+    public function create() {
         return inertia('Admin/Groups/Create');
     }
 
-    public function store(Request $request)
-    {
+    public static function getGroupData(Request $request) {
+        $query = Group::withCount('users')->latest();
+
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('description', 'like', "%{$request->search}%");
+            });
+        }
+
+        return $query->paginate(10)->appends($request->query());
+    }
+
+    public function store(Request $request) {
         $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string',
@@ -33,22 +42,19 @@ class GroupController extends Controller
             ->with('success', 'Angkatan berhasil ditambahkan');
     }
 
-    public function show(Group $group)
-    {
+    public function show(Group $group) {
         return inertia('Admin/Groups/Show', [
             'group' => $group->load('users'),
         ]);
     }
 
-    public function edit(Group $group)
-    {
+    public function edit(Group $group) {
         return inertia('Admin/Groups/Edit', [
             'group' => $group,
         ]);
     }
 
-    public function update(Request $request, Group $group)
-    {
+    public function update(Request $request, Group $group) {
         $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string',
@@ -60,8 +66,7 @@ class GroupController extends Controller
             ->with('success', 'Angkatan berhasil diperbarui');
     }
 
-    public function destroy(Group $group)
-    {
+    public function destroy(Group $group) {
         $group->delete();
 
         return redirect()->route('admin.groups.index')
