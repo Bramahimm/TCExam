@@ -53,6 +53,7 @@ class TestController extends Controller
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'is_active' => $data['is_active'] ?? true,
+            'results_to_users' => $data['results_to_users'] ?? false,
         ]);
 
         // Assign group (angkatan)
@@ -109,6 +110,7 @@ class TestController extends Controller
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
             'is_active' => $data['is_active'] ?? $test->is_active,
+            'results_to_users' => $data['results_to_users'] ?? $test->results_to_users,
         ]);
 
         // Update group

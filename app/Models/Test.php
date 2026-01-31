@@ -16,6 +16,7 @@ class Test extends Model
         'start_time',
         'end_time',
         'is_active',
+        'results_to_users',
     ];
 
     // Ujian ↔ Topik

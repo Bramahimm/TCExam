@@ -203,39 +203,56 @@ class TestController extends Controller
             }
         }
 
-    AnswerService::save(
-        $testUser->id,
-        $data['question_id'],
-        $data['answer_id'] ?? null,
-        $data['answer_text'] ?? null,
-        $isCorrect,
-        $score
-    );
+        AnswerService::save(
+            $testUser->id,
+            $data['question_id'],
+            $data['answer_id'] ?? null,
+            $data['answer_text'] ?? null,
+            $isCorrect,
+            $score
+        );
 
-    $testUser->update(['last_activity_at' => now()]);
+        $testUser->update(['last_activity_at' => now()]);
 
-    return response()->json(['status' => 'saved']);
-}
+        return response()->json(['status' => 'saved']);
+    }
 
     /**
      * Selesai Ujian
      */
     public function submit(TestUser $testUser)
     {
+        // Tandai ujian selesai
         $testUser->update([
             'status' => 'submitted',
             'finished_at' => now()
         ]);
 
+        // Hitung total score
         $totalScore = ScoringService::calculate($testUser);
 
+        // 🔥 Ambil setting dari test
+        $test = $testUser->test;
+
+        // Tentukan status result berdasarkan toggle
+        $status = $test->results_to_users ? 'validated' : 'pending';
+
+        // Simpan result
         $testUser->result()->create([
-            'total_score' => $totalScore,
-            'status' => 'pending'
+            'total_score'  => $totalScore,
+            'status'       => $status,
+            'validated_at' => $status === 'validated' ? now() : null,
+            'validated_by' => $status === 'validated' ? auth()->id() : null,
         ]);
 
-        QuestionGeneratorService::clear($testUser->test_id, $testUser->user_id);
+        // Bersihkan cache soal
+        QuestionGeneratorService::clear(
+            $testUser->test_id,
+            $testUser->user_id
+        );
 
-        return redirect()->route('peserta.dashboard')->with('success', 'Ujian berhasil diselesaikan.');
+        return redirect()
+            ->route('peserta.dashboard')
+            ->with('success', 'Ujian berhasil diselesaikan.');
     }
 }

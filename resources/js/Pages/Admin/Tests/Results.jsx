@@ -53,13 +53,13 @@ export default function Results({ results = [] }) {
                 <td className="px-4 py-3 text-center">
                   {row.result.status === "pending" && (
                     <Button
-  size="sm"
-  onClick={() =>
-    router.post(route("admin.results.validate", row.id))
-  }
->
-  Validasi
-</Button>
+                      size="sm"
+                      onClick={() =>
+                        router.post(route("admin.results.validate", row.id))
+                      }
+                    >
+                      Validasi
+                    </Button>
                   )}
                 </td>
               </tr>

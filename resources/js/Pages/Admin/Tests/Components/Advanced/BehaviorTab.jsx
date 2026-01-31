@@ -2,10 +2,7 @@ import React from "react";
 
 export default function BehaviorTab({ data, setData }) {
   const toggles = [
-    { label: "Acak Urutan Soal", key: "random_questions" },
-    { label: "Acak Pilihan Jawaban", key: "random_answers" },
     { label: "Tampilkan Hasil ke Peserta", key: "results_to_users" },
-    { label: "Tampilkan Laporan Detail", key: "reports_to_users" },
   ];
 
   return (
