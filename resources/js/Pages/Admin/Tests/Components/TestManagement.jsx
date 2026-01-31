@@ -7,13 +7,12 @@ import TestForm from "./TestForm";
 import DataFilter from "@/Components/Shared/DataFilter";
 import { initialForm, transformForEdit } from "../Config/FormSchema";
 
-// 🔥 Terima props isStatisticMode di sini
 export default function TestManagement({
   tests,
   groups,
   topics,
   modules,
-  isStatisticMode = false, 
+  isStatisticMode = false,
 }) {
   const { filters } = usePage().props;
 
@@ -29,10 +28,9 @@ export default function TestManagement({
 
   const refreshData = (newParams) => {
     setParams(newParams);
-    // Saat refresh, pastikan section statistic tetap terbawa jika ada
     const currentUrlParams = new URLSearchParams(window.location.search);
     const section = currentUrlParams.get('section');
-    
+
     router.get(route("admin.tests.index"), { ...newParams, section }, {
       preserveState: true,
       preserveScroll: true,
@@ -64,7 +62,7 @@ export default function TestManagement({
     window.searchTimeout = setTimeout(() => {
         const currentUrlParams = new URLSearchParams(window.location.search);
         const section = currentUrlParams.get('section');
-        
+
         router.get(
             route("admin.tests.index"),
             { ...params, search: val, section },
@@ -85,6 +83,7 @@ export default function TestManagement({
     transform,
   } = useForm(initialForm);
 
+  // 🔥 PERBAIKAN DI SINI: Transform Data sebelum Submit
   transform((data) => ({
     ...data,
     start_time: data.start_time ? data.start_time.replace("T", " ") : null,
@@ -92,11 +91,23 @@ export default function TestManagement({
     description: data.description || "",
     groups: Array.isArray(data.groups) ? data.groups : [],
     topics: Array.isArray(data.topics)
-      ? data.topics.map((id) => ({
-          id: id,
-          total_questions: 10,
-          question_type: "mixed",
-        }))
+      ? data.topics.map((item) => {
+          // Cek apakah item berupa object (dari edit) atau hanya ID (dari select baru)
+          const topicId = typeof item === 'object' ? item.id : item;
+          
+          // Logika Penentuan Jumlah Soal:
+          // 1. Jika item object dan punya 'total_questions', pakai nilai itu.
+          // 2. Jika tidak, pakai 1000 (angka besar) agar mengambil SEMUA stok soal di DB.
+          const qty = (typeof item === 'object' && item.total_questions) 
+              ? item.total_questions 
+              : 1000; 
+
+          return {
+             id: topicId,
+             total_questions: qty, // ✅ Sekarang dinamis / ambil semua
+             question_type: (typeof item === 'object' && item.question_type) ? item.question_type : "mixed",
+          };
+        })
       : [],
   }));
 
@@ -134,7 +145,6 @@ export default function TestManagement({
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden text-left">
       <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30 flex justify-between items-center">
         <div>
-          {/* 🔥 1. Judul Header Dinamis */}
           <h1 className="text-xl font-bold text-gray-900">
             {isStatisticMode ? "Statistik & Analisis Ujian" : "Manajemen Ujian"}
           </h1>
@@ -145,7 +155,6 @@ export default function TestManagement({
           </p>
         </div>
         
-        {/* 🔥 2. Tombol Tambah HANYA muncul jika BUKAN mode statistik */}
         {!isStatisticMode && (
           <Button
             onClick={() => openModal()}
@@ -167,10 +176,9 @@ export default function TestManagement({
           }
         />
 
-        {/* 🔥 3. Pass isStatisticMode ke TestTable */}
         <TestTable
           tests={tests.data || []}
-          isStatisticMode={isStatisticMode} // <-- Penting!
+          isStatisticMode={isStatisticMode}
           onEdit={openModal}
           onDelete={(id) =>
             confirm("Hapus ujian ini beserta seluruh data nilainya?") &&
@@ -179,7 +187,6 @@ export default function TestManagement({
         />
       </div>
 
-      {/* Modal hanya dirender/dibutuhkan jika bukan mode statistik, tapi dibiarkan ada tidak masalah */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

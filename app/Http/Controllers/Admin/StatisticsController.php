@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Services\Statistics\TestStatisticsService;
 use App\Services\Statistics\StudentStatisticsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\Question;
 
 class StatisticsController extends Controller
 {
@@ -41,5 +43,34 @@ class StatisticsController extends Controller
             'student' => $user,
             'data' => StudentStatisticsService::details($user->id),
         ]);
+    }
+
+    public function gradeEssay(Request $request)
+    {
+        $request->validate([
+            'answer_id' => 'required|exists:user_answers,id',
+            'is_correct' => 'required|boolean'
+        ]);
+
+        // 1. Ambil data jawaban & soal terkait
+        $answerId = $request->answer_id;
+        $userAnswer = DB::table('user_answers')->where('id', $answerId)->first();
+
+        if (!$userAnswer) return back()->withErrors('Data tidak ditemukan');
+
+        $question = Question::find($userAnswer->question_id);
+
+        // 2. Tentukan Skor (Jika Benar = Full Score, Jika Salah = 0)
+        $score = $request->is_correct ? $question->score : 0;
+
+        // 3. Update Database
+        DB::table('user_answers')
+            ->where('id', $answerId)
+            ->update([
+                'is_correct' => $request->is_correct,
+                'score' => $score
+            ]);
+
+        return back()->with('success', 'Nilai berhasil disimpan.');
     }
 }

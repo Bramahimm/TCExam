@@ -1,430 +1,189 @@
-import React, { useMemo, useState, useEffect } from "react";
-import { Head, router } from "@inertiajs/react";
-import {
-  Clock, CheckCircle, XCircle, AlertCircle,
-  BookOpen, ChevronRight, Plus, BarChart3, User
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { router, Link } from "@inertiajs/react";
+import { Clock, RefreshCw, Hash, Eye, ChevronDown } from "lucide-react"; // Tambah ChevronDown
 
-export default function Analitics({ testUsers = [] }) {
-  const [selectedTestId, setSelectedTestId] = useState(null);
-  const [selectedUserTestId, setSelectedUserTestId] = useState(null);
-  const [addTimeInput, setAddTimeInput] = useState("");
-  const [currentTime, setCurrentTime] = useState(new Date());
+export default function Analitics({ tests = [], currentTestId, participants = [] }) {
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(false); // State untuk loading dropdown
 
-  // Auto-refresh setiap 10 detik
+  // Auto Refresh
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(new Date()), 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Filter hanya ujian yang sedang berlangsung
-  const ongoingData = useMemo(() => {
-    const ongoing = testUsers.filter(tu => tu.finished_at === null);
-
-    const testsByTest = {};
-
-    ongoing.forEach((testUser) => {
-      const testId = testUser.test_id;
-      const testTitle = testUser.test?.title || "Unknown";
-
-      if (!testsByTest[testId]) {
-        testsByTest[testId] = {
-          testId,
-          title: testTitle,
-          duration: testUser.test?.duration || 0,
-          testUsers: [],
-        };
-      }
-      testsByTest[testId].testUsers.push(testUser);
-    });
-
-    return {
-      testsByTest,
-      allOngoingTests: Object.values(testsByTest),
-    };
-  }, [testUsers, currentTime]);
-
-  // Get users untuk test yang dipilih
-  const usersInSelectedTest = useMemo(() => {
-    if (!selectedTestId || !ongoingData.testsByTest[selectedTestId]) {
-      return [];
+    let interval;
+    if (isAutoRefresh) {
+      interval = setInterval(() => {
+        router.reload({
+          only: ['participants'],
+          preserveScroll: true,
+          onSuccess: () => setLastUpdated(new Date())
+        });
+      }, 5000);
     }
-    return ongoingData.testsByTest[selectedTestId].testUsers;
-  }, [selectedTestId, ongoingData.testsByTest]);
+    return () => clearInterval(interval);
+  }, [isAutoRefresh]);
 
-  // Get detail user yang dipilih
-  const selectedUserTest = useMemo(() => {
-    if (!selectedUserTestId) return null;
-    return usersInSelectedTest.find(u => u.id === selectedUserTestId) || null;
-  }, [selectedUserTestId, usersInSelectedTest]);
+  const handleTestChange = (e) => {
+    const testId = e.target.value;
+    if (!testId) return;
 
-  // Format time
-  const formatTime = (timeStr) => {
-    if (!timeStr) return "-";
-    const date = new Date(timeStr);
-    return date.toLocaleString('id-ID');
+    setIsLoading(true); // Mulai loading
+    router.get(route('admin.tests.index'), { 
+        section: 'analitics', 
+        test_id: testId 
+    }, {
+        onFinish: () => setIsLoading(false) // Selesai loading
+    });
   };
 
-  // Calculate remaining time
-  const calculateRemainingTime = (startedAt, testDuration) => {
-    if (!startedAt) return testDuration;
-    const started = new Date(startedAt);
-    const now = new Date();
-    const elapsed = Math.floor((now - started) / (1000 * 60));
-    const remaining = testDuration - elapsed;
-    return Math.max(0, remaining);
+  // Helper Warna Status (Sama seperti sebelumnya)
+  const getStatusBadge = (status) => {
+    switch(status) {
+        case 'ongoing': return <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full animate-pulse">Mengerjakan</span>;
+        case 'submitted': return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">Selesai</span>;
+        default: return <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">Belum Mulai</span>;
+    }
   };
 
-  // Get status color
-  const getStatusColor = (remainingMinutes) => {
-    if (remainingMinutes <= 5) return 'bg-red-100 text-red-700 border-red-300';
-    if (remainingMinutes <= 15) return 'bg-yellow-100 text-yellow-700 border-yellow-300';
-    return 'bg-green-100 text-green-700 border-green-300';
-  };
-
-  // Detail View - Ketika user dipilih
-  if (selectedUserTest) {
-    const userAnswers = selectedUserTest.user_answers || [];
-    const testDuration = selectedUserTest.test?.duration || 0;
-    const remainingTime = calculateRemainingTime(selectedUserTest.started_at, testDuration);
-    const totalQuestions = selectedUserTest.test?.questions?.length || 0;
-    const answeredCount = userAnswers.filter(a => a.answer_id).length;
-    const unansweredCount = totalQuestions - answeredCount;
-
-    return (
-      <>
-        <Head title="Detail Ujian Berlangsung" />
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30">
-            <button
-              onClick={() => setSelectedUserTestId(null)}
-              className="text-sm text-gray-500 hover:text-gray-900 mb-2 flex items-center gap-2 font-medium"
-            >
-              ← Kembali ke Daftar Peserta
-            </button>
-            <h1 className="text-xl font-bold text-gray-900">{selectedUserTest.test?.title}</h1>
-            <p className="text-xs text-gray-500 mt-1">Peserta: {selectedUserTest.user?.name} ({selectedUserTest.user?.email})</p>
-          </div>
-
-          <div className="p-8 space-y-8">
-            {/* Info Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-              {/* Sisa Waktu */}
-              <div className={`p-4 rounded-lg border-2 ${getStatusColor(remainingTime)}`}>
-                <p className="text-xs font-semibold uppercase mb-1">Sisa Waktu</p>
-                <p className="text-2xl font-bold font-mono">{Math.max(0, remainingTime)}</p>
-                <p className="text-xs mt-1">menit</p>
-              </div>
-
-              {/* Nilai Sementara */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-                <p className="text-xs font-semibold text-purple-600 uppercase">Nilai Sementara</p>
-                <p className="text-2xl font-bold text-purple-900 mt-1">
-                  {userAnswers.filter(a => a.is_correct).length * (100 / totalQuestions || 0) | 0}
-                </p>
-              </div>
-
-              {/* Dikerjakan */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                <p className="text-xs font-semibold text-blue-600 uppercase">Dikerjakan</p>
-                <p className="text-2xl font-bold text-blue-900 mt-1">{answeredCount}/{totalQuestions}</p>
-              </div>
-
-              {/* Benar */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                <p className="text-xs font-semibold text-green-600 uppercase">Benar</p>
-                <p className="text-2xl font-bold text-green-900 mt-1">{userAnswers.filter(a => a.is_correct).length}</p>
-              </div>
-
-              {/* Salah */}
-              <div className="bg-gradient-to-br from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
-                <p className="text-xs font-semibold text-red-600 uppercase">Salah</p>
-                <p className="text-2xl font-bold text-red-900 mt-1">
-                  {userAnswers.filter(a => !a.is_correct && a.answer_id).length}
-                </p>
-              </div>
-
-              {/* Belum Dijawab */}
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
-                <p className="text-xs font-semibold text-yellow-600 uppercase">Belum Dijawab</p>
-                <p className="text-2xl font-bold text-yellow-900 mt-1">{unansweredCount}</p>
-              </div>
-            </div>
-
-            {/* Waktu Detail */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-6 rounded-lg border border-gray-200 bg-white">
-                <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> Mulai Ujian
-                </p>
-                <p className="text-gray-900 font-mono text-sm">{formatTime(selectedUserTest.started_at)}</p>
-              </div>
-
-              <div className="p-6 rounded-lg border border-gray-200 bg-white">
-                <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> Durasi Ujian
-                </p>
-                <p className="text-gray-900 font-mono text-sm">{testDuration} menit</p>
-              </div>
-            </div>
-
-            {/* Tambah Waktu */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 className="font-bold text-blue-900 mb-4 flex items-center gap-2">
-                <Plus className="w-5 h-5" />
-                Tambah Waktu Ujian
-              </h3>
-              <div className="flex gap-3">
-                <input
-                  type="number"
-                  value={addTimeInput}
-                  onChange={(e) => setAddTimeInput(e.target.value)}
-                  placeholder="Masukkan menit tambahan"
-                  className="flex-1 px-4 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="1"
-                  max="120"
-                />
-                <button
-                  onClick={() => {
-                    if (addTimeInput && parseInt(addTimeInput) > 0) {
-                      router.post(
-                        route('admin.monitoring.forceSubmit', selectedUserTest.id),
-                        { extend_minutes: parseInt(addTimeInput) },
-                        {
-                          onSuccess: () => {
-                            setAddTimeInput("");
-                            alert(`Waktu ujian ${selectedUserTest.user?.name} ditambah ${addTimeInput} menit`);
-                          }
-                        }
-                      );
-                    }
-                  }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
-                >
-                  + Tambah
-                </button>
-              </div>
-            </div>
-
-            {/* Detail Jawaban */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <h3 className="font-bold text-lg text-gray-900">
-                  Detail Pertanyaan & Jawaban ({answeredCount}/{totalQuestions})
-                </h3>
-              </div>
-
-              <div className="divide-y divide-gray-200">
-                {selectedUserTest.test?.questions && selectedUserTest.test.questions.length > 0 ? (
-                  selectedUserTest.test.questions.map((question, qIdx) => {
-                    const userAnswer = userAnswers.find(a => a.question_id === question.id);
-                    const isCorrect = userAnswer?.is_correct;
-                    const answeredChoice = userAnswer?.answer;
-
-                    return (
-                      <div key={qIdx} className="p-6 hover:bg-gray-50 transition">
-                        <div className="flex items-start gap-4">
-                          {/* Status Icon */}
-                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
-                            isCorrect
-                              ? 'bg-green-100 text-green-700'
-                              : userAnswer?.answer_id
-                              ? 'bg-red-100 text-red-700'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {isCorrect ? <CheckCircle className="w-5 h-5" /> : userAnswer?.answer_id ? <XCircle className="w-5 h-5" /> : '?'}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            {/* Nomor & Status */}
-                            <p className="font-semibold text-gray-900 mb-3">
-                              Pertanyaan {qIdx + 1}
-                              {isCorrect && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded ml-2">✓ Benar</span>}
-                              {!isCorrect && userAnswer?.answer_id && <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded ml-2">✗ Salah</span>}
-                              {!userAnswer?.answer_id && <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded ml-2">? Belum Dijawab</span>}
-                            </p>
-
-                            {/* Soal */}
-                            <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
-                              <p className="text-sm text-gray-700" dangerouslySetInnerHTML={{
-                                __html: question.question_text || 'Tidak ada teks pertanyaan'
-                              }}></p>
-                            </div>
-
-                            {/* Pilihan Jawaban */}
-                            <div className="space-y-2 mb-4">
-                              {question.answers && question.answers.map((answer, aIdx) => {
-                                const isSelected = userAnswer?.answer_id === answer.id;
-                                const isCorrectAnswer = answer.is_correct;
-                                const shouldHighlight = isSelected || isCorrectAnswer;
-
-                                return (
-                                  <div
-                                    key={aIdx}
-                                    className={`p-3 rounded-lg border-2 ${
-                                      isSelected && isCorrect
-                                        ? 'border-green-400 bg-green-50'
-                                        : isSelected && !isCorrect
-                                        ? 'border-red-400 bg-red-50'
-                                        : isCorrectAnswer && !isSelected
-                                        ? 'border-blue-400 bg-blue-50'
-                                        : 'border-gray-200 bg-white'
-                                    }`}
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <div className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${
-                                        isSelected && isCorrect ? 'bg-green-500 text-white' :
-                                        isSelected && !isCorrect ? 'bg-red-500 text-white' :
-                                        isCorrectAnswer ? 'bg-blue-500 text-white' :
-                                        'bg-gray-300 text-gray-600'
-                                      }`}>
-                                        {String.fromCharCode(65 + aIdx)}
-                                      </div>
-                                      <div className="flex-1">
-                                        <p className={`text-sm ${
-                                          isSelected && isCorrect ? 'text-green-900 font-semibold' :
-                                          isSelected && !isCorrect ? 'text-red-900 font-semibold' :
-                                          isCorrectAnswer ? 'text-blue-900 font-semibold' :
-                                          'text-gray-700'
-                                        }`}>
-                                          {answer.answer_text}
-                                        </p>
-                                        {isSelected && <p className="text-xs text-gray-500 mt-1">✓ Jawaban Peserta</p>}
-                                        {isCorrectAnswer && !isSelected && <p className="text-xs text-blue-600 mt-1">✓ Jawaban Benar</p>}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="p-12 text-center text-gray-400">
-                    <p>Tidak ada pertanyaan</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // View Utama - Filter Test & User
   return (
-    <>
-      <Head title="Analytics - Ujian Berlangsung" />
-
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/30">
-          <h1 className="text-xl font-bold text-gray-900">📊 Detail Ujian Berlangsung</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Pilih ujian dan peserta untuk melihat detail pertanyaan, jawaban, dan kelola waktu
-          </p>
-        </div>
-
-        <div className="p-8 space-y-8">
-          {/* Filter Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Filter Test */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                Pilih Ujian
-              </h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {ongoingData.allOngoingTests.length > 0 ? (
-                  ongoingData.allOngoingTests.map((test) => (
-                    <button
-                      key={test.testId}
-                      onClick={() => {
-                        setSelectedTestId(test.testId);
-                        setSelectedUserTestId(null);
-                      }}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition ${
-                        selectedTestId === test.testId
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <p className="font-semibold text-gray-900">{test.title}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        👥 {test.testUsers.length} peserta • ⏱️ {test.duration} menit
-                      </p>
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-400 py-8">
-                    Tidak ada ujian yang sedang berlangsung
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Filter User */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-              <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Pilih Peserta
-              </h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {usersInSelectedTest.length > 0 ? (
-                  usersInSelectedTest.map((testUser) => {
-                    const remaining = calculateRemainingTime(testUser.started_at, testUser.test?.duration || 0);
-                    const answered = (testUser.user_answers || []).filter(a => a.answer_id).length;
-                    const total = testUser.test?.questions?.length || 0;
-
-                    return (
-                      <button
-                        key={testUser.id}
-                        onClick={() => setSelectedUserTestId(testUser.id)}
-                        className={`w-full text-left p-4 rounded-lg border transition ${
-                          selectedUserTestId === testUser.id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="font-semibold text-gray-900">{testUser.user?.name}</p>
-                            <p className="text-xs text-gray-500">{testUser.user?.email}</p>
-                          </div>
-                          <div className={`px-2 py-1 rounded text-xs font-bold border ${getStatusColor(remaining)}`}>
-                            {remaining}m
-                          </div>
+    <div className="space-y-6 pb-20">
+        
+        {/* Header Controller */}
+       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-4 w-full md:w-2/3">
+                <div className="p-3 bg-blue-50 rounded-xl shrink-0">
+                    <Clock className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1 w-full relative">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
+                        Pilih Ujian {isLoading && <span className="text-blue-500 animate-pulse ml-2">(Memuat...)</span>}
+                    </label>
+                    
+                    {/* 🔥 PERBAIKAN DROPDOWN DISINI */}
+                    <div className="relative">
+                        <select 
+                            value={currentTestId || ''} 
+                            onChange={handleTestChange}
+                            disabled={isLoading}
+                            className="block w-full pl-4 pr-10 py-2.5 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-lg shadow-sm transition-all appearance-none cursor-pointer bg-white text-gray-900 font-medium disabled:bg-gray-100 disabled:text-gray-400"
+                        >
+                            <option value="" disabled>-- Pilih Jadwal Ujian --</option>
+                            {Array.isArray(tests) && tests.length > 0 ? (
+                                tests.map(t => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.title} — {t.duration} Menit
+                                    </option>
+                                ))
+                            ) : (
+                                <option disabled>Data ujian tidak tersedia</option>
+                            )}
+                        </select>
+                        {/* Custom Icon Panah */}
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <ChevronDown className="h-4 w-4" />
                         </div>
-                        <p className="text-xs text-gray-500">
-                          ✓ {answered}/{total} dikerjakan
-                        </p>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <p className="text-center text-gray-400 py-8">
-                    {selectedTestId ? 'Pilih ujian terlebih dahulu' : 'Tidak ada peserta'}
-                  </p>
-                )}
-              </div>
+                    </div>
+                </div>
             </div>
-          </div>
-
-          {/* Info */}
-          {selectedTestId && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <span className="font-semibold">ℹ️</span> Pilih salah satu peserta dari daftar di atas untuk melihat detail pertanyaan, jawaban, dan opsi tambah waktu ujian.
-              </p>
+            
+            <div className="flex items-center justify-between w-full md:w-auto gap-4 pl-0 md:pl-4 border-t md:border-t-0 md:border-l border-gray-100 pt-3 md:pt-0">
+                <div className="text-left md:text-right">
+                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Update Terakhir</p>
+                    <p className="text-sm font-mono font-bold text-gray-700">{lastUpdated.toLocaleTimeString()}</p>
+                </div>
+                <button 
+                    onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition shadow-sm border ${
+                        isAutoRefresh 
+                        ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
+                        : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                    }`}
+                >
+                    <RefreshCw className={`w-4 h-4 ${isAutoRefresh ? 'animate-spin' : ''}`} />
+                    {isAutoRefresh ? 'Live' : 'Paused'}
+                </button>
             </div>
-          )}
         </div>
-      </div>
-    </>
+
+        {/* Tabel Peserta (Kode tabel Anda tetap sama, tidak saya ubah agar fokus ke dropdown) */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            {Array.isArray(participants) && participants.length > 0 ? (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-4 font-bold w-16 text-center">No</th>
+                                <th className="px-6 py-4 font-bold w-32">NPM</th>
+                                <th className="px-6 py-4 font-bold">Nama Peserta</th>
+                                <th className="px-6 py-4 font-bold text-center">Status</th>
+                                <th className="px-6 py-4 font-bold text-center">Progress</th>
+                                <th className="px-6 py-4 font-bold text-center">Mulai</th>
+                                <th className="px-6 py-4 font-bold text-center">Selesai</th>
+                                <th className="px-6 py-4 font-bold text-center">Nilai</th>
+                                <th className="px-6 py-4 font-bold text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {participants.map((p, index) => (
+                                <tr key={p.id} className="hover:bg-blue-50/50 transition">
+                                    <td className="px-6 py-4 text-center font-bold text-gray-500">{index + 1}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2 text-gray-700 font-mono font-bold bg-gray-100 px-2 py-1 rounded w-fit text-xs">
+                                            <Hash className="w-3 h-3 text-gray-400" />
+                                            {p.user?.npm || p.user?.username || '-'} 
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
+                                                {p.user?.name?.charAt(0)}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="font-bold text-gray-900 truncate max-w-[200px]" title={p.user?.name}>
+                                                    {p.user?.name}
+                                                </div>
+                                                <div className="text-xs text-gray-500 truncate max-w-[200px]">
+                                                    {p.user?.email}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">{getStatusBadge(p.status)}</td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs">
+                                            {p.answered_count} Jawab
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-center text-xs text-gray-500 font-mono">
+                                        {p.started_at ? new Date(p.started_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : '-'}
+                                    </td>
+                                    <td className="px-6 py-4 text-center text-xs text-gray-500 font-mono">
+                                        {p.finished_at ? new Date(p.finished_at).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) : <span className="text-gray-300">-</span>}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <div className={`inline-flex items-center gap-1 font-bold px-3 py-1 rounded-lg border ${p.score >= 70 ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                                            {p.score ?? 0}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <Link href={route('admin.analytics.show', p.id)} className="inline-flex items-center gap-2 bg-white border border-gray-300 hover:border-blue-500 hover:text-blue-600 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
+                                            <Eye className="w-3.5 h-3.5" /> Detail
+                                        </Link>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="text-center py-20 bg-gray-50">
+                    <div className="bg-white p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100">
+                        <Clock className="w-8 h-8 text-gray-300" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Belum ada peserta</h3>
+                    <p className="text-gray-500 text-sm max-w-xs mx-auto">Silakan pilih ujian di atas atau tunggu peserta mulai login.</p>
+                </div>
+            )}
+        </div>
+    </div>
   );
 }
