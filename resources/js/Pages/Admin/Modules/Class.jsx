@@ -1,198 +1,129 @@
 import React, { useState } from "react";
-import { useForm } from "@inertiajs/react";
+import { router } from "@inertiajs/react";
 import Button from "@/Components/UI/Button";
-import Modal from "@/Components/UI/Modal";
+import DataFilter from "@/Components/Shared/DataFilter"; // Sekarang komponen ini DIPAKAI
+
+// Import Komponen Modular
+import ClassTable from "./Class-Components/ClassTable";
+import ClassForm from "./Class-Components/ClassForm";
+import ClassEmpty from "./Class-Components/ClassEmpty";
 
 import {
   PlusIcon,
-  PencilSquareIcon,
-  TrashIcon,
   AcademicCapIcon,
-} from "@heroicons/react/24/solid";
+} from "@heroicons/react/24/outline";
 
-export default function Class({ modules }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [editId, setEditId] = useState(null);
+export default function Class({ modules, filters }) {
+  // State
+  const [search, setSearch] = useState(filters?.search || "");
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
-  const { data, setData, post, put, delete: destroy, processing, reset } =
-    useForm({
-      name: "",
-      description: "",
-    });
-
-  /* ================= OPEN MODAL ================= */
-  const openCreate = () => {
-    reset();
-    setEditId(null);
-    setIsOpen(true);
+  // --- HANDLERS ---
+  
+  // 1. Search Handler (Server-side)
+  const handleSearch = (val) => {
+    setSearch(val);
+    router.get(
+        route("admin.modules.index"), 
+        { section: "class", search: val }, 
+        { preserveState: true, preserveScroll: true, replace: true }
+    );
   };
 
-  const openEdit = (item) => {
-    setEditId(item.id);
-    setData({
-      name: item.name,
-      description: item.description ?? "",
-    });
-    setIsOpen(true);
+  // 2. Reset Handler (Bersihkan pencarian)
+  const handleReset = () => {
+    setSearch("");
+    router.get(route("admin.modules.index"), { section: "class" });
   };
 
-  /* ================= SUBMIT ================= */
-  const submit = (e) => {
-    e.preventDefault();
+  // 3. CRUD Handlers
+  const handleSubmit = (formData) => {
+    const options = { 
+        onSuccess: () => { setShowModal(false); setEditingItem(null); },
+        preserveScroll: true 
+    };
 
-    if (editId) {
-      put(route("admin.modules.update", editId), {
-        onSuccess: () => setIsOpen(false),
-      });
+    if (editingItem) {
+      router.put(route("admin.modules.update", editingItem.id), formData, options);
     } else {
-      post(route("admin.modules.store"), {
-        onSuccess: () => setIsOpen(false),
-      });
+      router.post(route("admin.modules.store"), formData, options);
     }
   };
 
-  /* ================= DELETE ================= */
-  const handleDelete = (id) => {
-    if (!confirm("Yakin ingin menghapus kelas ini?")) return;
-
-    destroy(route("admin.modules.destroy", id));
+  const destroy = (id) => {
+    if (!confirm("Yakin ingin menghapus Modul ini? Semua Topik dan Soal di dalamnya juga akan terhapus!")) return;
+    router.delete(route("admin.modules.destroy", id), { preserveScroll: true });
   };
 
+  const openCreate = () => {
+    setEditingItem(null);
+    setShowModal(true);
+  };
+
+  const openEdit = (item) => {
+    setEditingItem(item);
+    setShowModal(true);
+  };
+
+  // --- RENDER ---
+  const hasData = modules?.data?.length > 0;
+
   return (
-    <>
-      {/* ================= HEADER ================= */}
-      <div className="bg-white rounded-xl border shadow-sm">
-        <div className="p-6 border-b flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <AcademicCapIcon className="w-7 h-7 text-emerald-600" />
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">
-                Manajemen Modul
-              </h2>
-              <p className="text-sm text-gray-500">
-                Halaman Manajemen Akademik Fakultas Kedokteran
-              </p>
-            </div>
-          </div>
-
-          <Button
-            onClick={openCreate}
-            className="bg-emerald-600 flex items-center gap-2"
-          >
-            <PlusIcon className="w-5 h-5" />
-            Tambahkan Modul
-          </Button>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      
+      {/* HEADER */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <AcademicCapIcon className="w-6 h-6 text-emerald-600" />
+            Manajemen Modul
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Kelola modul akademik utama (e.g. Blok Biomedik, Blok Klinis).
+          </p>
         </div>
-
-        {/* ================= TABLE ================= */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
-              <tr>
-                <th className="px-6 py-4 text-left">Nama Modul</th>
-                <th className="px-6 py-4 text-left">Deskripsi</th>
-                <th className="px-6 py-4 text-right">Aksi</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {modules.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="3"
-                    className="px-6 py-10 text-center text-gray-400"
-                  >
-                    Tidak ada modul yang ditemukan
-                  </td>
-                </tr>
-              ) : (
-                modules.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="border-t hover:bg-gray-50 transition"
-                  >
-                    <td className="px-6 py-4 font-semibold text-gray-800">
-                      {item.name}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {item.description || "-"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="p-2 rounded-lg border hover:bg-blue-50 text-blue-600"
-                        >
-                          <PencilSquareIcon className="w-5 h-5" />
-                        </button>
-
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="p-2 rounded-lg border hover:bg-red-50 text-red-600"
-                        >
-                          <TrashIcon className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Button onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-100 flex items-center gap-2">
+          <PlusIcon className="w-5 h-5" />
+          Tambah Modul
+        </Button>
       </div>
 
-      {/* ================= MODAL ================= */}
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title={editId ? "Edit Modul" : "Tambah Modul"}
-      >
-        <form onSubmit={submit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Nama Modul
-            </label>
-            <input
-              type="text"
-              value={data.name}
-              onChange={(e) => setData("name", e.target.value)}
-              className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
-              required
-            />
-          </div>
+      {/* FILTER BAR (Sekarang menggunakan DataFilter Component) */}
+      <DataFilter
+        searchPlaceholder="Cari nama modul..."
+        searchValue={search}
+        onSearchChange={handleSearch}
+        onReset={handleReset}
+        // Kita sembunyikan tombol reset jika tidak ada pencarian aktif
+        hideReset={!search} 
+      />
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Deskripsi
-            </label>
-            <textarea
-              rows="3"
-              value={data.description}
-              onChange={(e) => setData("description", e.target.value)}
-              className="w-full rounded-lg border-gray-300 focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
+      {/* CONTENT: TABLE ATAU EMPTY STATE */}
+      {!hasData ? (
+        <ClassEmpty
+            icon={AcademicCapIcon} 
+            title="Tidak Ditemukan" 
+            desc={search ? `Tidak ada modul dengan nama "${search}".` : "Belum ada modul yang dibuat."}
+            action={
+                !search && <Button onClick={openCreate} variant="outline">Buat Modul Pertama</Button>
+            }
+        />
+      ) : (
+        <ClassTable 
+            modules={modules}
+            onEdit={openEdit}
+            onDelete={destroy}
+        />
+      )}
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsOpen(false)}
-            >
-              Batal
-            </Button>
-
-            <Button
-              type="submit"
-              loading={processing}
-              className="bg-emerald-600"
-            >
-              {editId ? "Update" : "Simpan"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-    </>
+      {/* MODAL FORM */}
+      <ClassForm
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmit={handleSubmit}
+        initialData={editingItem}
+      />
+    </div>
   );
 }

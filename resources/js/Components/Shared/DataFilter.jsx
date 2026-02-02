@@ -68,7 +68,7 @@ export default function DataFilter({
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border-gray-200 rounded-xl text-xs font-semibold focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer hover:bg-white hover:shadow-sm appearance-none">
                 <option value="">
                   {filter.placeholder ||
-                    `-- Semua ${filter.label.toLowerCase()} --`}
+                    `-- Semua ${filter.label} --`}
                 </option>
                 {filter.options.map((opt) => (
                   <option key={opt.value} value={opt.value}>
