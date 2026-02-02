@@ -2,10 +2,9 @@ import React, { useMemo } from "react";
 import { Head, usePage } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
 
-/* Sub pages */
 import ClassPage from "./Class";
 import Questions from "./Questions";
-import Subjects from "./Subjects";
+import Topic from "./Topic";
 import Results from "./Results";
 import ImportPage from "./Import";
 
@@ -26,7 +25,7 @@ export default function Index(props) {
         return <Questions {...props} />;
 
       case "subjects":
-        return <Subjects {...props} />;
+        return <Topic {...props} />;
 
       case "results":
         return <Results {...props} />;
