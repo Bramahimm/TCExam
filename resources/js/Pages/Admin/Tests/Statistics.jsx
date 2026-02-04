@@ -9,9 +9,12 @@ import {
     Award, Clock, AlertCircle, FileText, HelpCircle, Hourglass, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 
-// 🔥 IMPORT CSS WAJIB (Agar Simbol/Icon Medis & Rumus Tampil)
+// IMPORT CSS WAJIB
 import 'katex/dist/katex.min.css';
 import 'react-quill/dist/quill.snow.css';
+
+// 🔥 PERBAIKAN IMPORT: Langsung dari file sebelah, bukan folder Components
+import ExportPdfStatistics from './ExportPdfStatistics';
 
 export default function Statistics({ test, summary }) {
     const { stats, distribution, top_students, questions = [] } = summary;
@@ -74,6 +77,9 @@ export default function Statistics({ test, summary }) {
                             <span>{test.title}</span>
                         </div>
                     </div>
+
+                    {/* TOMBOL PDF */}
+                    <ExportPdfStatistics test={test} stats={stats} questions={questions} />
                 </div>
 
                 {/* Cards Summary */}
@@ -86,6 +92,7 @@ export default function Statistics({ test, summary }) {
 
                 {/* Charts & Top Students */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Chart */}
                     <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col min-w-0">
                         <div className="mb-6">
                             <h3 className="font-bold text-lg text-gray-900">Distribusi Nilai Peserta</h3>
@@ -108,13 +115,11 @@ export default function Statistics({ test, summary }) {
                         </div>
                     </div>
 
-                    {/* 🔥 HAPUS CLASS 'h-[430px]' AGAR TIDAK ADA SCROLL */}
+                    {/* Top Students */}
                     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-auto min-w-0">
                         <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
                             <Award className="w-5 h-5 text-yellow-500" /> Peringkat Tertinggi
                         </h3>
-                        
-                        {/* 🔥 HAPUS CLASS 'overflow-y-auto' & 'flex-1' */}
                         <div className="space-y-3">
                             {top_students.length > 0 ? (
                                 top_students.map((student, idx) => (
@@ -210,14 +215,14 @@ export default function Statistics({ test, summary }) {
                                             <td className="border-r border-gray-100"></td>
                                             <td className="px-6 py-5 text-gray-800">
                                                 
-                                                {/* 🔥 RENDER FOTO SOAL */}
+                                                {/* FOTO SOAL */}
                                                 {q.question_image && (
                                                     <div className="mb-4">
                                                         <img src={`/storage/${q.question_image}`} alt="Visual Soal" className="max-h-64 rounded-lg border border-gray-200 object-contain" />
                                                     </div>
                                                 )}
 
-                                                {/* 🔥 RENDER HTML SOAL */}
+                                                {/* HTML SOAL (Tampilan Web) */}
                                                 <div 
                                                     dangerouslySetInnerHTML={{ __html: q.question_text }} 
                                                     className="prose prose-sm max-w-none mb-4 text-gray-800 break-words whitespace-normal [&_img]:max-w-full [&_img]:h-auto ql-editor"
@@ -225,7 +230,7 @@ export default function Statistics({ test, summary }) {
                                                 />
 
                                                 <div className="space-y-2 mt-4">
-                                                    {/* LOGIKA PERCABANGAN: PILIHAN GANDA VS ESSAY */}
+                                                    {/* PILIHAN GANDA VS ESSAY */}
                                                     {q.answers && q.answers.length > 0 ? (
                                                         q.answers.map((ans, idx) => (
                                                             <div key={idx} className="flex items-start gap-4 group">
@@ -242,12 +247,11 @@ export default function Statistics({ test, summary }) {
                                                                     <div className="relative z-10 flex flex-wrap justify-between items-center w-full text-xs gap-2">
                                                                         
                                                                         <div className="flex-1 min-w-0 pr-2">
-                                                                            {/* 🔥 RENDER FOTO JAWABAN */}
+                                                                            {/* FOTO JAWABAN */}
                                                                             {ans.answer_image && (
                                                                                 <img src={`/storage/${ans.answer_image}`} alt="Visual Jawaban" className="max-h-20 rounded border border-gray-200 mb-2 block" />
                                                                             )}
-                                                                            
-                                                                            {/* 🔥 RENDER HTML JAWABAN */}
+                                                                            {/* HTML JAWABAN */}
                                                                             <div className="flex items-center gap-2">
                                                                                 <div 
                                                                                     dangerouslySetInnerHTML={{ __html: ans.answer_text }} 
@@ -259,14 +263,14 @@ export default function Statistics({ test, summary }) {
                                                                         </div>
                                                                         
                                                                         <span className="font-bold text-gray-700 font-mono shrink-0 self-start mt-1">
-                                                                            {ans.selection_count} Mahasiswa ({ans.selection_pct}%)
+                                                                            {ans.selection_count} Mhs ({ans.selection_pct}%)
                                                                         </span>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         ))
                                                     ) : (
-                                                        // --- ESSAY / TEXT ---
+                                                        // ESSAY
                                                         <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                                                             <div className="px-4 py-3 border-b border-gray-200 bg-gray-100/50 flex justify-between items-center">
                                                                 <h4 className="font-bold text-gray-700 text-xs uppercase tracking-wide flex items-center gap-2">
@@ -280,7 +284,6 @@ export default function Statistics({ test, summary }) {
                                                                 )}
                                                             </div>
                                                             
-                                                            {/* 🔥 HAPUS CLASS 'max-h', 'overflow' DISINI AGAR TIDAK ADA SCROLL */}
                                                             <div className="p-4 space-y-3">
                                                                 {q.student_responses && q.student_responses.length > 0 ? (
                                                                     q.student_responses.map((resp, i) => (
@@ -301,14 +304,13 @@ export default function Statistics({ test, summary }) {
                                                                                 </div>
                                                                             </div>
 
-                                                                            {/* 🔥 RENDER HTML JAWABAN SISWA */}
+                                                                            {/* HTML JAWABAN SISWA */}
                                                                             <div 
                                                                                 dangerouslySetInnerHTML={{ __html: resp.text }}
                                                                                 className="text-gray-800 text-sm mb-4 leading-relaxed whitespace-pre-wrap border-l-2 border-gray-200 pl-3 ql-editor"
                                                                                 style={{ padding: 0, height: 'auto', overflow: 'visible', minHeight: 0 }}
                                                                             />
                                                                             
-                                                                            {/* GRADING BUTTONS */}
                                                                             <div className="flex justify-end gap-2 pt-2 border-t border-gray-100/50">
                                                                                 <button 
                                                                                     onClick={() => handleGrade(resp.id, 0)}
