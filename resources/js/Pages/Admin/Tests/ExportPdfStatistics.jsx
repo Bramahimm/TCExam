@@ -94,7 +94,7 @@
             doc.setFontSize(14); doc.setFont("Roboto", "bold");
             doc.text("Laporan Analisis Butir Soal", 14, 40);
             doc.setFontSize(10); doc.setFont("Roboto", "normal");
-            doc.text(`Ujian  : ${test?.title || '-'}`, 14, 48);
+            doc.text(`Mata Kuliah  : ${test?.title || '-'}`, 14, 48);
             doc.text(`Kode   : ${test?.code || '-'}`, 14, 53);
             doc.text(`Peserta: ${stats?.total_participants || 0} Mahasiswa`, 14, 58);
 
