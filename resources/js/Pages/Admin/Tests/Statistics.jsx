@@ -86,7 +86,7 @@ export default function Statistics({ test, summary }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard title="Total Peserta" value={stats.total_participants} icon={Users} color="text-blue-600 bg-blue-600" subtext="Mahasiswa yang submit" />
                     <StatCard title="Rata-Rata Nilai" value={stats.average_score} icon={TrendingUp} color="text-purple-600 bg-purple-600" />
-                    <StatCard title="Lulus KKM" value={stats.passed_count} icon={CheckCircle} color="text-emerald-600 bg-emerald-600" subtext="Nilai ≥ 75" />
+                    <StatCard title="Lulus KKM" value={stats.passed_count} icon={CheckCircle} color="text-emerald-600 bg-emerald-600" subtext="Nilai ≥ 76" />
                     <StatCard title="Di Bawah KKM" value={stats.failed_count} icon={XCircle} color="text-red-600 bg-red-600" />
                 </div>
 

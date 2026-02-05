@@ -42,8 +42,8 @@ class TestStatisticsService
             'average_score' => $totalParticipants > 0 ? round($scores->avg(), 2) : 0,
             'highest_score' => $totalParticipants > 0 ? $scores->max() : 0,
             'lowest_score' => $totalParticipants > 0 ? $scores->min() : 0,
-            'passed_count' => $scores->filter(fn($s) => $s >= 75)->count(),
-            'failed_count' => $scores->filter(fn($s) => $s < 75)->count(),
+            'passed_count' => $scores->filter(fn($s) => $s >= 76)->count(),
+            'failed_count' => $scores->filter(fn($s) => $s < 76)->count(),
         ];
 
         // 5. Ambil Data Jawaban User (Join ke Users untuk ambil Nama)
