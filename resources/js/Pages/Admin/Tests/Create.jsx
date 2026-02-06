@@ -2,6 +2,7 @@ import React from "react";
 import { Head, useForm } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
 import TestForm from "./Components/TestForm";
+import Alert from '@/Components/UI/Alert'; // Sudah benar
 
 export default function Create({ groups, topics }) {
   const { data, setData, post, processing, errors } = useForm({
@@ -23,16 +24,28 @@ export default function Create({ groups, topics }) {
   return (
     <AdminLayout>
       <Head title="Buat Ujian Baru" />
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-        <TestForm
-          data={data}
-          setData={setData}
-          errors={errors}
-          processing={processing}
-          groups={groups}
-          topics={topics}
-          submit={handleSubmit}
-        />
+      
+      <div className="max-w-5xl mx-auto">
+        {/* HEADER HALAMAN */}
+        <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Buat Konfigurasi Ujian</h1>
+            <p className="text-sm text-gray-500">Tentukan jadwal, durasi, dan topik pertanyaan.</p>
+        </div>
+
+        {/* ALERT ERROR VALIDASI */}
+        <Alert errors={errors} />
+
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+          <TestForm
+            data={data}
+            setData={setData}
+            errors={errors}
+            processing={processing}
+            groups={groups}
+            topics={topics}
+            submit={handleSubmit}
+          />
+        </div>
       </div>
     </AdminLayout>
   );

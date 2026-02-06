@@ -33,12 +33,18 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            // 👇 UPDATE BAGIAN INI
+            // Menangkap pesan kilat (flash message)
             'flash' => [
                 'success' => fn() => $request->session()->get('success'),
                 'error'   => fn() => $request->session()->get('error'),
                 'warning' => fn() => $request->session()->get('warning'),
             ],
+            // 👇 TAMBAHKAN INI: Menangkap error validasi (Password salah, dll)
+            'errors' => function () use ($request) {
+                return $request->session()->get('errors')
+                    ? $request->session()->get('errors')->getBag('default')->getMessages()
+                    : (object) [];
+            },
         ]);
     }
 }

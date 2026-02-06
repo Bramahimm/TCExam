@@ -1,19 +1,23 @@
 import React from 'react'
-import { Head, useForm } from '@inertiajs/react'
-import { motion } from 'framer-motion'
+import { Head, useForm, usePage } from '@inertiajs/react' // Tambah usePage
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
     User, 
     LockKeyhole, 
     LogIn, 
     ShieldCheck, 
-    Activity 
+    Activity,
+    AlertCircle // Icon untuk alert
 } from 'lucide-react'
 
 import Input from '@/Components/UI/Input'
 import Button from '@/Components/UI/Button'
 
 export default function Login() {
-    const { data, setData, post, processing, errors } = useForm({
+    // Ambil errors dan flash secara global dari props Inertia
+    const { errors: globalErrors, flash } = usePage().props;
+
+    const { data, setData, post, processing, errors, reset } = useForm({
         login: '',
         password: '',
         remember: false,
@@ -21,7 +25,9 @@ export default function Login() {
 
     const submit = (e) => {
         e.preventDefault()
-        post(route('login'))
+        post(route('login'), {
+            onFinish: () => reset('password'),
+        })
     }
 
     // Varians Animasi
@@ -29,10 +35,6 @@ export default function Login() {
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0 },
         transition: { duration: 0.6, ease: "easeOut" }
-    }
-
-    const staggerContainer = {
-        animate: { transition: { staggerChildren: 0.1 } }
     }
 
     return (
@@ -52,7 +54,6 @@ export default function Login() {
                 <div className="absolute inset-0 bg-gradient-to-tr from-emerald-950/90 via-emerald-900/80 to-slate-900/90" />
 
                 <motion.div 
-                    variants={staggerContainer}
                     initial="initial"
                     animate="animate"
                     className="relative z-10 max-w-xl px-16 text-white"
@@ -61,7 +62,7 @@ export default function Login() {
                         <div className="p-2 bg-emerald-400/20 rounded-lg backdrop-blur-md">
                             <ShieldCheck className="w-8 h-8 text-emerald-400" />
                         </div>
-                        <span className="tracking-widest uppercase text-sm font-bold text-emerald-300">Official Platform</span>
+                        <span className="tracking-widest uppercase text-sm font-bold text-emerald-300">New System</span>
                     </motion.div>
                     
                     <motion.h1 variants={fadeInUp} className="text-6xl font-extrabold leading-tight tracking-tighter">
@@ -80,7 +81,6 @@ export default function Login() {
 
             {/* ================= RIGHT (Form Login) ================= */}
             <div className="flex items-center justify-center px-6 py-12 relative">
-                {/* Dekorasi Background Subtil */}
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                     <Activity className="w-64 h-64 text-emerald-900" />
                 </div>
@@ -91,7 +91,7 @@ export default function Login() {
                     transition={{ duration: 0.8, delay: 0.2 }}
                     className="w-full max-w-md rounded-[2.5rem] bg-white/70 backdrop-blur-2xl border border-white shadow-2xl shadow-slate-200/50 overflow-hidden"
                 >
-                    <div className="px-10 pt-12 pb-6 text-center">
+                    <div className="px-10 pt-12 pb-4 text-center">
                         <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
@@ -100,15 +100,29 @@ export default function Login() {
                             <img
                                 src="/images/logo.png"
                                 alt="Universitas Lampung"
-                                className="mx-auto w-24 mb-6 drop-shadow-md"
+                                className="mx-auto w-20 mb-4 drop-shadow-md"
                             />
                         </motion.div>
                         <h2 className="text-3xl font-black text-slate-800 tracking-tight">
                             Login CBT
                         </h2>
-                        <p className="text-slate-500 mt-2 font-medium">
-                            Silakan masuk ke akun Anda
-                        </p>
+                        
+                        {/* GLOBAL ERROR ALERT SYSTEM */}
+                        <AnimatePresence mode="wait">
+                            {(errors.login || flash?.error || globalErrors?.message) && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="mt-4 mx-2 p-3 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3 text-red-600 text-xs font-bold shadow-sm"
+                                >
+                                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    <p className="text-left">
+                                        {errors.login || flash?.error || globalErrors?.message || "Terjadi kesalahan sistem."}
+                                    </p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     <form onSubmit={submit} className="px-10 pb-12 space-y-5">
@@ -116,9 +130,8 @@ export default function Login() {
                             <Input
                                 label="Email / NPM"
                                 value={data.login}
-                                icon={User} // Pastikan komponen Input Anda mendukung prop icon Lucide
+                                icon={User}
                                 onChange={e => setData('login', e.target.value)}
-                                error={errors.login}
                                 placeholder="Masukkan Email atau NPM"
                                 className="rounded-2xl border-slate-200 focus:ring-emerald-500 transition-all"
                             />
@@ -145,7 +158,7 @@ export default function Login() {
                                     onChange={e => setData('remember', e.target.checked)}
                                     className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 transition-colors"
                                 />
-                                <span className="group-hover:text-slate-900 transition-colors">Tetap masuk</span>
+                                <span className="group-hover:text-slate-900 transition-colors font-medium">Tetap masuk</span>
                             </label>
                             <a href="#" className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">Lupa Password?</a>
                         </div>
@@ -159,8 +172,8 @@ export default function Login() {
                             Masuk Sekarang
                         </Button>
 
-                        <p className="text-center text-xs text-slate-400 font-medium pt-4">
-                            &copy; {new Date().getFullYear()} FK Unila IT Unit. All rights reserved.
+                        <p className="text-center text-[10px] text-slate-400 font-medium pt-4 uppercase tracking-widest">
+                            &copy; {new Date().getFullYear()} Team IT FK Unila
                         </p>
                     </form>
                 </motion.div>
