@@ -2,22 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Table from '@/Components/UI/Table';
+import axios from 'axios';
 
 export default function Dashboard({ stats, latestTests }) {
     const [serverTime, setServerTime] = useState(new Date());
 
     useEffect(() => {
-        const fetchServerTime = async () => {
-            try {
-                const response = await fetch('/api/time');
-                if (response.ok) {
-                    const data = await response.json();
+    const fetchServerTime = async () => {
+        try {
+            const response = await fetch('/api/time', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if(data.server_time) {
                     setServerTime(new Date(data.server_time));
                 }
-            } catch (error) {
-                // Silent fail
             }
-        };
+        } catch (error) {
+            console.error("Sync error:", error);
+        }
+    };
 
         fetchServerTime();
         const syncInterval = setInterval(fetchServerTime, 60_000);

@@ -27,13 +27,23 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    // 1. Jika user sudah login, arahkan ke dashboard masing-masing
     if (auth()->check()) {
         return auth()->user()->role === 'admin'
-            ? Inertia::location(route('admin.dashboard'))
-            : Inertia::location(route('peserta.dashboard'));
+            ? redirect()->route('admin.dashboard')
+            : redirect()->route('peserta.dashboard');
     }
 
-    // 2. Jika user BELUM login, tampilkan halaman Welcome.jsx
+    if (session()->has('errors') || session()->has('error')) {
+        return redirect()->route('login');
+    }
+
     return Inertia::render('Welcome');
 });
+
+Route::get('/api/time', function () {
+    // Gunakan response()->json() untuk memaksa output menjadi JSON murni
+    return response()->json([
+        'time' => now()->toDateTimeString(),
+        'timestamp' => now()->timestamp
+    ]);
+})->withoutMiddleware([\App\Http\Middleware\HandleInertiaRequests::class]);

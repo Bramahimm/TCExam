@@ -27,29 +27,25 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    // ... bagian atas tetap sama
-
     public function store(LoginRequest $request)
     {
-        $request->authenticate();
-        $request->session()->regenerate();
+        $fieldType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'npm';
 
-        $user = auth()->user();
-        $currentSessionId = session()->getId();
+        if (Auth::attempt([$fieldType => $request->login, 'password' => $request->password], $request->remember)) {
+            $request->session()->regenerate();
 
-        // 🔑 DAFTARKAN SESSION ID BARU SAAT LOGIN
-        // Jika Admin, kita biarkan saja (Admin boleh login di banyak tempat)
-        if ($user->role !== 'admin') {
-            $user->update([
-                'active_session_id' => $currentSessionId
-            ]);
+            $user = Auth::user();
+            $user->update(['active_session_id' => session()->getId()]);
+
+            return $user->role === 'admin'
+                ? redirect()->intended(route('admin.dashboard'))
+                : redirect()->intended(route('peserta.dashboard'));
         }
 
-        if ($user->role === 'admin') {
-            return Inertia::location(route('admin.dashboard'));
-        }
 
-        return Inertia::location(route('peserta.dashboard'));
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'login' => 'NIM/Email atau Password salah. Silakan periksa kembali.',
+        ]);
     }
 
     public function destroy(Request $request)

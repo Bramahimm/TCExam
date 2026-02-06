@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 
+
 class TestController extends Controller
 {
     /* ================= INDEX ================= */
@@ -140,7 +141,6 @@ class TestController extends Controller
         ]);
     }
 
-    /* ================= CREATE ================= */
     public function create()
     {
         return inertia('Admin/Tests/Create', [
@@ -148,38 +148,56 @@ class TestController extends Controller
             'topics' => Topic::with('module')->where('is_active', true)->get(),
         ]);
     }
-
     /* ================= STORE ================= */
     public function store(StoreTestRequest $request)
     {
-        $data = $request->validated();
+        try {
+            $data = $request->validated();
 
-        $test = Test::create([
-            'title' => $data['title'],
-            'description' => $data['description'] ?? null,
-            'duration' => $data['duration'],
-            'start_time' => $data['start_time'],
-            'end_time' => $data['end_time'],
-            'is_active' => $data['is_active'] ?? true,
-            'results_to_users' => $data['results_to_users'] ?? false,
-        ]);
+            // Tambahkan pengecekan manual untuk demo alert
+            $exists = Test::where('start_time', $data['start_time'])
+                ->where('title', $data['title'])
+                ->exists();
 
-        if (isset($data['groups'])) {
-            $test->groups()->sync($data['groups']);
-        }
-
-        if (isset($data['topics'])) {
-            $syncTopics = [];
-            foreach ($data['topics'] as $topic) {
-                $syncTopics[$topic['id']] = [
-                    'total_questions' => $topic['total_questions'],
-                    'question_type' => $topic['question_type'] ?? 'mixed',
-                ];
+            if ($exists) {
+                return back()->with('error', 'Judul dan waktu ujian sudah terdaftar!')->withInput();
             }
-            $test->topics()->sync($syncTopics);
-        }
 
-        return redirect()->route('admin.tests.index')->with('success', 'Ujian berhasil dibuat');
+            DB::beginTransaction();
+
+            $test = Test::create([
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'duration' => $data['duration'],
+                'start_time' => $data['start_time'],
+                'end_time' => $data['end_time'],
+                'is_active' => $data['is_active'] ?? true,
+                'results_to_users' => $data['results_to_users'] ?? false,
+            ]);
+
+            if (isset($data['groups'])) {
+                $test->groups()->sync($data['groups']);
+            }
+
+            if (isset($data['topics'])) {
+                $syncTopics = [];
+                foreach ($data['topics'] as $topic) {
+                    $syncTopics[$topic['id']] = [
+                        'total_questions' => $topic['total_questions'],
+                        'question_type' => $topic['question_type'] ?? 'mixed',
+                    ];
+                }
+                $test->topics()->sync($syncTopics);
+            }
+
+            DB::commit();
+
+            return redirect()->route('admin.tests.index')->with('success', 'Ujian berhasil dibuat');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Melempar pesan error ke Alert.jsx
+            return back()->with('error', 'Gagal menyimpan: ' . $e->getMessage())->withInput();
+        }
     }
 
     /* ================= SHOW ================= */
@@ -240,9 +258,7 @@ class TestController extends Controller
         return redirect()->route('admin.tests.index')->with('success', 'Ujian berhasil dihapus');
     }
 
-    /* =========================================================
-       🔥 FITUR RAPID GRADING (Penilaian Cepat Essay)
-       ========================================================= */
+    /* ================= GRADE ESSAY ================= */
     public function gradeEssay(Request $request)
     {
         $request->validate([

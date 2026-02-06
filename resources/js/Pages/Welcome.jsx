@@ -211,7 +211,7 @@ export default function Welcome() {
                                     {/* Footer */}
                                     <div className="mt-8 pt-6 border-t border-white/5 text-center">
                                         <p className="text-[10px] text-slate-600 uppercase tracking-[0.3em] font-semibold">
-                                            IT Unit FK Unila © {new Date().getFullYear()}
+                                            Team IT FK Unila © {new Date().getFullYear()}
                                         </p>
                                     </div>
                                 </div>
