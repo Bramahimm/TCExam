@@ -15,10 +15,6 @@ class HandleInertiaRequests extends Middleware
         return parent::version($request);
     }
 
-    /**
-     * 🔥 KUNCI UNTUK SEB:
-     * Memaksa browser memvalidasi data di setiap request XHR/Inertia
-     */
     public function handle(Request $request, Closure $next)
     {
         // Jalankan mesin utama Inertia dulu (agar data shared terisi)

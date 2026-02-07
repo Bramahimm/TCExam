@@ -5,7 +5,6 @@ namespace App\Exceptions;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\App;
 
 class Handler extends ExceptionHandler
 {
@@ -15,30 +14,22 @@ class Handler extends ExceptionHandler
         'password_confirmation',
     ];
 
-    public function register()
-    {
-        $this->renderable(function (Throwable $e, $request) {
-            if ($request->header('X-Inertia')) {
-                // Handle Session Expired (419)
-                if ($e instanceof \Illuminate\Session\TokenMismatchException) {
-                    return redirect()->route('login')->with('error', 'Sesi Anda telah berakhir, silakan login kembali.');
-                }
-            }
-        });
-    }
-
     public function render($request, Throwable $e)
     {
         $response = parent::render($request, $e);
 
-        // Daftar status yang ingin ditampilkan menggunakan halaman DynamicError
-        $errorStatuses = [500, 503, 404, 403, 419];
+        // Handle Session Expired (419) agar balik ke login dengan pesan
+        if ($response->status() === 419) {
+            return redirect()->route('login')->with('error', 'Sesi Anda berakhir, silakan login kembali.');
+        }
+
+        // Daftar status yang ingin ditampilkan menggunakan DynamicError
+        $errorStatuses = [500, 503, 404, 403];
 
         if (in_array($response->status(), $errorStatuses)) {
             return Inertia::render('Errors/DynamicError', [
                 'status' => $response->status(),
-                // 🔥 Menangkap pesan kustom dari middleware (abort)
-                'message' => $e->getMessage() ?: null,
+                'message' => $e->getMessage() ?: 'Terjadi kesalahan sistem.',
             ])->toResponse($request)->setStatusCode($response->status());
         }
 

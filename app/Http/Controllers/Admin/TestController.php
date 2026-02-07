@@ -124,7 +124,6 @@ class TestController extends Controller
                 'locker:id,name'
             ])
                 ->latest('started_at')
-                // 👇 INI SUDAH BENAR, ABAIKAN ERROR GARIS MERAH DI VSCODE
                 ->paginate(200)
                 ->through(function ($testUser) {
                     $questionsCount = 0;
@@ -195,7 +194,6 @@ class TestController extends Controller
             return redirect()->route('admin.tests.index')->with('success', 'Ujian berhasil dibuat');
         } catch (\Exception $e) {
             DB::rollBack();
-            // Melempar pesan error ke Alert.jsx
             return back()->with('error', 'Gagal menyimpan: ' . $e->getMessage())->withInput();
         }
     }

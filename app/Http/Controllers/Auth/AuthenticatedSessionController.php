@@ -4,62 +4,53 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
-use Inertia\Response;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
-    public function create(): Response
+    public function create()
     {
-        return Inertia::render('Auth/Login', [
-            'canResetPassword' => Route::has('password.request'),
-            'status' => session('status'),
-        ]);
+        return inertia('Auth/Login');
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request)
     {
-        $fieldType = filter_var($request->login, FILTER_VALIDATE_EMAIL) ? 'email' : 'npm';
+        $field = filter_var($request->login, FILTER_VALIDATE_EMAIL)
+            ? 'email'
+            : 'npm';
 
-        if (Auth::attempt([$fieldType => $request->login, 'password' => $request->password], $request->remember)) {
-            $request->session()->regenerate();
-
-            $user = Auth::user();
-            $user->update(['active_session_id' => session()->getId()]);
-
-            return $user->role === 'admin'
-                ? redirect()->intended(route('admin.dashboard'))
-                : redirect()->intended(route('peserta.dashboard'));
+        if (! Auth::attempt(
+            [$field => $request->login, 'password' => $request->password],
+            $request->remember
+        )) {
+            throw ValidationException::withMessages([
+                'login' => 'NPM / Email atau Password salah.',
+            ]);
         }
 
+        $request->session()->regenerate();
 
-        throw \Illuminate\Validation\ValidationException::withMessages([
-            'login' => 'NIM/Email atau Password salah. Silakan periksa kembali.',
-        ]);
+        $user = Auth::user();
+        $user->update(['active_session_id' => session()->getId()]);
+
+        return redirect()->intended(
+            $user->role === 'admin'
+                ? route('admin.dashboard')
+                : route('peserta.dashboard')
+        );
     }
 
-    public function destroy(Request $request)
+    public function destroy()
     {
         $user = Auth::user();
-
-        // 🔑 HAPUS SESSION ID SAAT LOGOUT
         if ($user) {
             $user->update(['active_session_id' => null]);
         }
 
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
 
         return redirect()->route('login');
     }
