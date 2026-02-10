@@ -212,7 +212,7 @@ class TestUserController extends Controller
             if ($testUser->locked_at) {
                 $lockedAt = \Carbon\Carbon::parse($testUser->locked_at);
                 $now = now();
-                
+
                 $diffInSeconds = $lockedAt->diffInSeconds($now);
                 $bufferLag = 15;
                 $totalSecondsToAdd = $diffInSeconds + $bufferLag;
@@ -255,35 +255,35 @@ class TestUserController extends Controller
 
     // Versi bram
     public function bulkValidate(Request $request)
-{
-    // Validasi: pastikan ada ID yang dikirim
-    $request->validate(['ids' => 'required|array']);
+    {
+        // Validasi: pastikan ada ID yang dikirim
+        $request->validate(['ids' => 'required|array']);
 
-    // Ambil semua sesi ujian yang dipilih
-    $testUsers = TestUser::whereIn('id', $request->ids)->get();
-    $count = 0;
+        // Ambil semua sesi ujian yang dipilih
+        $testUsers = TestUser::whereIn('id', $request->ids)->get();
+        $count = 0;
 
-    foreach ($testUsers as $testUser) {
-        // Hitung ulang skor pake service
-        $score = ScoringService::calculate($testUser);
+        foreach ($testUsers as $testUser) {
+            // Hitung ulang skor pake service
+            $score = ScoringService::calculate($testUser);
 
-        // Simpan/update hasil dengan status 'validated'
-        // Pakai updateOrCreate biar aman buat data lama yang belum punya result
-        Result::updateOrCreate(
-            ['test_user_id' => $testUser->id],
-            [
-                'total_score' => $score,
-                'status' => 'validated',
-                'validated_by' => auth()->id(),
-                'validated_at' => now()
-            ]
-        );
+            // Simpan/update hasil dengan status 'validated'
+            // Pakai updateOrCreate biar aman buat data lama yang belum punya result
+            Result::updateOrCreate(
+                ['test_user_id' => $testUser->id],
+                [
+                    'total_score' => $score,
+                    'status' => 'validated',
+                    'validated_by' => auth()->id(),
+                    'validated_at' => now()
+                ]
+            );
 
-        $count++;
+            $count++;
+        }
+
+        return back()->with('success', "$count Hasil peserta berhasil dipublikasikan & dinilai ulang.");
     }
-
-    return back()->with('success', "$count Hasil peserta berhasil dipublikasikan & dinilai ulang.");
-}
     /**
      * Hapus Massal (Bulk Delete)
      */
