@@ -41,7 +41,7 @@ export default function Index({ auth, results }) {
           {/* Header Card */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-6 mb-8 text-white shadow-lg flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold mb-2">Arsip Prestasi</h1>
+              <h1 className="text-2xl font-bold mb-2">Riwayat Hasil Ujian</h1>
               <p className="text-blue-100 max-w-xl">
                 Lihat kembali jejak ujian yang telah Anda selesaikan. Pembahasan
                 detail dan nilai akhir tersedia setelah divalidasi oleh Admin.

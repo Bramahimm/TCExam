@@ -41,9 +41,16 @@ class QuestionGeneratorService
                 $query->inRandomOrder();
             }
 
-            // Ambil sesuai jumlah
+            $availableCount = (clone $query)->count();
+            $limit = $availableCount;
+
+            if ($limit === 0) {
+                continue;
+            }
+
+            // Ambil sesuai jumlah (jika kosong, ambil semua stok)
             $questions = $query
-                ->limit($topic->pivot->total_questions)
+                ->limit($limit)
                 ->pluck('id')
                 ->toArray();
 

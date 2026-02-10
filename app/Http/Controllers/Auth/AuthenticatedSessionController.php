@@ -16,29 +16,17 @@ class AuthenticatedSessionController extends Controller
 
     public function store(LoginRequest $request)
     {
-        $field = filter_var($request->login, FILTER_VALIDATE_EMAIL)
-            ? 'email'
-            : 'npm';
-
-        if (! Auth::attempt(
-            [$field => $request->login, 'password' => $request->password],
-            $request->remember
-        )) {
-            throw ValidationException::withMessages([
-                'login' => 'NPM / Email atau Password salah.',
-            ]);
-        }
+        $request->authenticate(); 
 
         $request->session()->regenerate();
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $user->update(['active_session_id' => session()->getId()]);
 
-        return redirect()->intended(
-            $user->role === 'admin'
-                ? route('admin.dashboard')
-                : route('peserta.dashboard')
-        );
+        return $user->role === 'admin'
+            ? redirect()->intended(route('admin.dashboard'))
+            : redirect()->intended(route('peserta.dashboard'));
     }
 
     public function destroy()

@@ -83,6 +83,10 @@ class ExamTimeService
      */
     public static function remainingSeconds(TestUser $testUser): int
     {
+        if ($testUser->status === 'submitted' || $testUser->status === 'expired') {
+            return 0;
+        }
+
         $endTime = self::getEndTime($testUser);
         $now = now();
 

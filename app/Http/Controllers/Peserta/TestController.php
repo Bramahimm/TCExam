@@ -127,7 +127,6 @@ class TestController extends Controller
             'test' => $test,
             'testUserId' => $testUser->id,
             'questions' => $questions,
-            // 👇 Disini sudah benar panggil ExamTimeService
             'remainingSeconds' => ExamTimeService::remainingSeconds($testUser),
             'existingAnswers' => $existingAnswers,
             'currentUser' => $user,
