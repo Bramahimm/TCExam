@@ -60,7 +60,15 @@ class TestUserController extends Controller
      */
     public function unlock(TestUser $testUser)
     {
+        $extraMinutes = 0;
+        if ($testUser->locked_at) {
+            $diffInSeconds = $testUser->locked_at->diffInSeconds(now());
+            $bufferLag = 15;
+            $extraMinutes = (int) ceil(($diffInSeconds + $bufferLag) / 60);
+        }
+
         $testUser->update([
+            'extra_time' => ($testUser->extra_time ?? 0) + $extraMinutes,
             'is_locked' => false,
             'lock_reason' => null,
             'locked_by' => null,
@@ -206,10 +214,9 @@ class TestUserController extends Controller
                 $now = now();
                 
                 $diffInSeconds = $lockedAt->diffInSeconds($now);
-                $bufferLag = 15;                
+                $bufferLag = 15;
                 $totalSecondsToAdd = $diffInSeconds + $bufferLag;
-
-                $minutesToAdd = $totalSecondsToAdd / 60;
+                $minutesToAdd = (int) ceil($totalSecondsToAdd / 60);
 
                 $testUser->extra_time = ($testUser->extra_time ?? 0) + $minutesToAdd;
             }
