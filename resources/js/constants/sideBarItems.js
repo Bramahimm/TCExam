@@ -116,7 +116,7 @@ export const SideBarItems = [
       },
     ],
   },
-  { name: "Backup", icon: Database, route: "#" },
+  { name: "Backup", icon: Database, route: "admin.backup.index" },
   // { name: "Public", icon: Globe, route: "#" },
-  { name: "Help", icon: HelpCircle, route: "#" },
+  { name: "Help", icon: HelpCircle, route: "admin.help.index" },
 ];

@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\{
     DashboardController as AdminDashboardController,
+    BackupController,
+    HelpController,
     ModuleController,
     TopicController,
     QuestionController,
@@ -28,6 +30,11 @@ Route::middleware([
     // Dashboard
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])
         ->name('dashboard');
+
+    // Backup & Help
+    Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
+    Route::get('/backup/download', [BackupController::class, 'download'])->name('backup.download');
+    Route::get('/help', [HelpController::class, 'index'])->name('help.index');
 
     // 1. Import Users
     Route::get('/users/import', [ImportUserController::class, 'create'])->name('users.import.view');
@@ -107,7 +114,7 @@ Route::middleware([
     Route::post('/tests/grade-essay', [StatisticsController::class, 'gradeEssay'])
         ->name('tests.grade-essay');
 
-        
+
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('monitoring.index');
     Route::get('/analytics/{id}', [AnalyticsController::class, 'show'])->name('analytics.show');
 
