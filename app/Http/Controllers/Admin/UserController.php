@@ -259,24 +259,38 @@ class UserController extends Controller
             'name' => 'required|string',
             'npm' => 'nullable|string|unique:users,npm',
             'email' => 'required|email|unique:users,email',
-            'groups' => 'required|array|min:1',
+            'role' => 'required|in:admin,peserta',
+            'groups' => 'nullable|array',
         ]);
 
         DB::transaction(function () use ($request) {
-            $password = $request->npm;
+            // Untuk admin, gunakan password default atau bisa custom
+            // Untuk peserta, gunakan NPM sebagai password
+            $password = $request->role === 'admin'
+                ? ($request->password ?: 'admin123')
+                : $request->npm;
+
             $user = User::create([
                 'name' => $request->name,
                 'npm' => $request->npm,
                 'email' => $request->email,
                 'password' => Hash::make($password),
-                'role' => 'peserta',
+                'role' => $request->role,
                 'is_active' => true,
             ]);
-            $user->groups()->sync($request->groups);
+
+            // Sync groups hanya jika ada
+            if ($request->groups) {
+                $user->groups()->sync($request->groups);
+            }
         });
 
+        $message = $request->role === 'admin'
+            ? 'User admin berhasil ditambahkan'
+            : 'User peserta berhasil ditambahkan';
+
         return redirect()->route('admin.users.index', ['section' => 'management'])
-            ->with('success', 'User peserta berhasil ditambahkan');
+            ->with('success', $message);
     }
 
     public function show(User $user)
@@ -303,21 +317,24 @@ class UserController extends Controller
             'npm' => 'nullable|string|max:20|unique:users,npm,' . $user->id,
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|min:8',
-            'groups' => 'required|array|min:1',
+            'role' => 'required|in:admin,peserta',
+            'groups' => 'nullable|array',
         ]);
 
         // 2. Logika Password
         if (empty($validated['password'])) {
             // Hapus key 'password' dari array agar Laravel TIDAK mengupdate kolom password
-            unset($validated['password']); 
+            unset($validated['password']);
         } else {
             $validated['password'] = Hash::make($validated['password']);
         }
 
         $user->update($validated);
-        
-        // 4. Sync Group
-        $user->groups()->sync($validated['groups']);
+
+        // 4. Sync Group (hanya jika ada groups)
+        if (isset($validated['groups'])) {
+            $user->groups()->sync($validated['groups']);
+        }
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User berhasil diperbarui');

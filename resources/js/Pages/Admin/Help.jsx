@@ -154,7 +154,7 @@ export default function Help() {
                 permintaan fitur.
               </p>
               <div className="mt-4 text-sm text-emerald-800 font-medium">
-                Email: support@cbt-fkunila.local
+                Email: itsupport@cbt-fkunila.ac.id
               </div>
             </div>
           </div>

@@ -17,7 +17,7 @@ export default function UserForm({ data, setData, errors, groups }) {
       // kita gunakan spread operator agar data lama tidak hilang
       setData("groups", [...data.groups, groupId]);
     }
-  }; 
+  };
 
   return (
     <div className="space-y-4 text-left">
@@ -47,6 +47,69 @@ export default function UserForm({ data, setData, errors, groups }) {
         error={errors.email}
         placeholder="email@contoh.com"
       />
+
+      <div>
+        <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
+          Role Pengguna
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label
+            className={`flex items-center space-x-3 p-3 border rounded-xl hover:bg-gray-50 cursor-pointer transition-all duration-200 ${
+              data.role === "peserta"
+                ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500/10"
+                : "border-gray-200 bg-white"
+            }`}>
+            <input
+              type="radio"
+              name="role"
+              value="peserta"
+              checked={data.role === "peserta"}
+              onChange={(e) => setData("role", e.target.value)}
+              className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+            />
+            <div className="flex items-center gap-2">
+              <span className="material-icons text-blue-600 text-lg">person</span>
+              <span
+                className={`text-xs font-bold uppercase tracking-tight ${
+                  data.role === "peserta" ? "text-blue-700" : "text-gray-600"
+                }`}>
+                Peserta
+              </span>
+            </div>
+          </label>
+
+          <label
+            className={`flex items-center space-x-3 p-3 border rounded-xl hover:bg-gray-50 cursor-pointer transition-all duration-200 ${
+              data.role === "admin"
+                ? "border-purple-500 bg-purple-50 ring-2 ring-purple-500/10"
+                : "border-gray-200 bg-white"
+            }`}>
+            <input
+              type="radio"
+              name="role"
+              value="admin"
+              checked={data.role === "admin"}
+              onChange={(e) => setData("role", e.target.value)}
+              className="text-purple-600 focus:ring-purple-500 w-4 h-4"
+            />
+            <div className="flex items-center gap-2">
+              <span className="material-icons text-purple-600 text-lg">admin_panel_settings</span>
+              <span
+                className={`text-xs font-bold uppercase tracking-tight ${
+                  data.role === "admin" ? "text-purple-700" : "text-gray-600"
+                }`}>
+                Admin
+              </span>
+            </div>
+          </label>
+        </div>
+        {errors.role && (
+          <p className="mt-2 text-[10px] text-red-500 font-bold uppercase tracking-widest italic">
+            {errors.role}
+          </p>
+        )}
+      </div>
+
       <div className="relative">
         <Input
           label="Password"
@@ -74,6 +137,11 @@ export default function UserForm({ data, setData, errors, groups }) {
       <div className="mt-4">
         <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
           Target Grup / Angkatan Mahasiswa
+          {data.role === "admin" && (
+            <span className="ml-2 text-[9px] text-gray-400 font-normal normal-case">
+              (Opsional untuk Admin)
+            </span>
+          )}
         </label>
 
         <div className="grid grid-cols-2 gap-2">

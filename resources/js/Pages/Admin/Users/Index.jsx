@@ -34,6 +34,7 @@ export default function Index({ users = [], groups = [], totalOnline = 0 }) {
       name: "",
       npm: "",
       email: "",
+      role: "peserta",
       groups: [],
     });
 
@@ -46,6 +47,7 @@ export default function Index({ users = [], groups = [], totalOnline = 0 }) {
         name: user.name || "",
         npm: user.npm || "",
         email: user.email || "",
+        role: user.role || "peserta",
         groups: user.groups ? user.groups.map((g) => g.id) : [],
       });
     } else {
